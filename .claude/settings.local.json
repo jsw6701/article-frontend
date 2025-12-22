@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm i:*)",
+      "Bash(npx cap init:*)",
+      "Bash(npx cap add android)",
+      "Bash(npm run build:app:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(npx cap open android)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
