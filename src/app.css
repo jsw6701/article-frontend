@@ -1,0 +1,57 @@
+/* Bento Design Tokens */
+:root {
+  /* Font */
+  font-family: Pretendard, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Color - 부드러운 배경 */
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --border: rgba(0, 0, 0, 0.06);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+
+  --text-main: #1a1a1a;
+  --text-body: #4a4a4a;
+  --text-sub: rgba(0, 0, 0, 0.45);
+
+  /* Accent */
+  --accent: #2563eb;
+
+  /* Issue group accent (은은하게) */
+  --g-rate: #2563eb;
+  --g-fx: #7c3aed;
+  --g-stock: #16a34a;
+  --g-realestate: #ea580c;
+  --g-macro: #0ea5e9;
+  --g-policy: #64748b;
+
+  /* Radius */
+  --radius: 18px;
+  --radius-lg: 22px;
+
+  /* Spacing */
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
+}
+
+/* Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

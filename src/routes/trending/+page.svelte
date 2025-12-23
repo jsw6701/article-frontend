@@ -1,15 +1,15 @@
 <script lang="ts">
-  import type { CardListItem } from "$lib/types";
-  import { todayCards } from "$lib/api";
+  import type { TrendingItem } from "$lib/types";
+  import { getTrending } from "$lib/api";
   import { getGroupLabel, formatRelativeTime } from "$lib/utils/labels";
 
-  let items: CardListItem[] = [];
+  let items: TrendingItem[] = [];
   let loading = true;
   let error: string | null = null;
 
   (async () => {
     try {
-      const res = await todayCards(7);
+      const res = await getTrending({ limit: 10 });
       items = res.items;
     } catch (e: any) {
       error = e?.message ?? "불러오기 실패";
@@ -20,8 +20,8 @@
 </script>
 
 <header class="page-header">
-  <h1 class="page-title">오늘의 브리핑</h1>
-  <p class="page-desc">최근 7일간 업데이트</p>
+  <h1 class="page-title">급상승</h1>
+  <p class="page-desc">지금 화제가 되고 있는 이슈</p>
 </header>
 
 {#if loading}
@@ -34,21 +34,24 @@
   </div>
 {:else if items.length === 0}
   <div class="status">
-    <p class="muted">최근 업데이트가 없습니다</p>
+    <p class="muted">급상승 이슈가 없습니다</p>
   </div>
 {:else}
   <section class="list">
-    {#each items as it}
+    {#each items as it, idx}
       <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`/cards/${it.issueId}`}>
-        <div class="card-meta">
-          <span class="card-tag">{getGroupLabel(it.issueGroup)}</span>
-          <span class="card-time">{formatRelativeTime(it.issueLastPublishedAt)}</span>
-          {#if it.articleCount > 0}
+        <div class="card-rank">{idx + 1}</div>
+        <div class="card-content">
+          <div class="card-meta">
+            <span class="card-tag">{getGroupLabel(it.issueGroup)}</span>
+            <span class="card-time">{formatRelativeTime(it.lastPublishedAt)}</span>
             <span class="card-stats">기사 {it.articleCount}건 · {it.publisherCount}개 언론사</span>
+          </div>
+          <h3 class="card-title">{it.issueTitle}</h3>
+          {#if it.conclusion}
+            <p class="card-desc">{it.conclusion}</p>
           {/if}
         </div>
-        <h3 class="card-title">{it.issueTitle}</h3>
-        <p class="card-desc">{it.conclusion ?? "내용을 불러오는 중..."}</p>
       </a>
     {/each}
   </section>
@@ -56,7 +59,7 @@
 
 <style>
   .page-header {
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-3);
   }
 
   .page-title {
@@ -94,7 +97,9 @@
   }
 
   .card {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
     background: var(--card);
     border-radius: var(--radius);
     padding: var(--space-3) var(--space-4);
@@ -107,6 +112,25 @@
       transform: translateY(-2px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
     }
+  }
+
+  .card-rank {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(37, 99, 235, 0.1);
+    border-radius: 8px;
+  }
+
+  .card-content {
+    flex: 1;
+    min-width: 0;
   }
 
   .card-meta {
@@ -154,9 +178,20 @@
 
   /* 그룹별 태그 컬러 */
   :global(.group-rate) .card-tag { color: var(--g-rate); }
+  :global(.group-rate) .card-rank { color: var(--g-rate); background: rgba(37, 99, 235, 0.1); }
+
   :global(.group-fx) .card-tag { color: var(--g-fx); }
+  :global(.group-fx) .card-rank { color: var(--g-fx); background: rgba(124, 58, 237, 0.1); }
+
   :global(.group-stock) .card-tag { color: var(--g-stock); }
+  :global(.group-stock) .card-rank { color: var(--g-stock); background: rgba(22, 163, 74, 0.1); }
+
   :global(.group-realestate) .card-tag { color: var(--g-realestate); }
+  :global(.group-realestate) .card-rank { color: var(--g-realestate); background: rgba(234, 88, 12, 0.1); }
+
   :global(.group-macro) .card-tag { color: var(--g-macro); }
+  :global(.group-macro) .card-rank { color: var(--g-macro); background: rgba(14, 165, 233, 0.1); }
+
   :global(.group-policy) .card-tag { color: var(--g-policy); }
+  :global(.group-policy) .card-rank { color: var(--g-policy); background: rgba(100, 116, 139, 0.1); }
 </style>

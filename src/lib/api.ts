@@ -1,4 +1,18 @@
-import type { CardDetail, CardListItem, IssueGroup, CardStatus, PageResponse } from "./types";
+import type {
+  CardDetail,
+  CardListItem,
+  IssueGroup,
+  CardStatus,
+  PageResponse,
+  TrendingResponse,
+  SignUpRequest,
+  SignUpResponse,
+  LoginRequest,
+  LoginResponse,
+  UsernameCheckResponse,
+  RefreshResponse,
+  LogoutResponse
+} from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -50,4 +64,51 @@ export function getCard(issueId: number) {
 
 export function todayCards(limit = 7) {
   return http<PageResponse<CardListItem>>(`/api/cards/today${qs({ limit })}`);
+}
+
+export function getTrending(opts: { hours?: number; limit?: number } = {}) {
+  return http<TrendingResponse>(
+    `/api/trending${qs({
+      hours: opts.hours ?? 3,
+      limit: opts.limit ?? 10,
+    })}`
+  );
+}
+
+// ========== Auth API ==========
+
+export function signUp(request: SignUpRequest) {
+  return http<SignUpResponse>("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
+export function login(request: LoginRequest) {
+  return http<LoginResponse>("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
+export function checkUsername(username: string) {
+  return http<UsernameCheckResponse>(`/api/auth/check-username${qs({ username })}`);
+}
+
+export function refreshToken(refreshToken: string) {
+  return http<RefreshResponse>("/api/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+  });
+}
+
+export function logout(userId: number) {
+  return http<LogoutResponse>("/api/auth/logout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId }),
+  });
 }

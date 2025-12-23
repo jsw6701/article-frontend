@@ -10,7 +10,16 @@ export interface CardListItem {
   cardStatus: CardStatus;
   cardUpdatedAt: string; // ISO
   conclusion?: string | null;
-  cardJson?: any | null; // 서버가 raw string이면 string으로 바꿔도 됨
+  cardJson?: any | null;
+  articleCount: number;
+  publisherCount: number;
+}
+
+export interface ArticleSummary {
+  title: string;
+  link: string;
+  publisher: string;
+  publishedAt: string; // ISO
 }
 
 export interface CardDetail {
@@ -23,6 +32,9 @@ export interface CardDetail {
   cardStatus: CardStatus;
   cardUpdatedAt: string;
   cardJson: any;
+  issueArticleCount: number;
+  issuePublisherCount: number;
+  articles: ArticleSummary[];
 }
 
 export interface PageResponse<T> {
@@ -30,4 +42,78 @@ export interface PageResponse<T> {
   count: number;
   limit: number;
   offset: number;
+}
+
+export interface TrendingItem {
+  issueId: number;
+  issueTitle: string;
+  issueGroup: IssueGroup;
+  articleCount: number;
+  publisherCount: number;
+  lastPublishedAt: string;
+  score: number;
+  conclusion: string | null;
+}
+
+export interface TrendingResponse {
+  items: TrendingItem[];
+  count: number;
+  hours: number;
+}
+
+// ========== Auth Types ==========
+
+export type Gender = "MALE" | "FEMALE";
+export type AgeGroup = "TEENS" | "TWENTIES" | "THIRTIES" | "FORTIES" | "FIFTIES" | "SIXTIES_PLUS";
+
+export interface SignUpRequest {
+  username: string;
+  password: string;
+  gender: Gender;
+  ageGroup: AgeGroup;
+}
+
+export interface SignUpResponse {
+  success: boolean;
+  userId: number | null;
+  username: string | null;
+  message: string | null;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  accessToken: string | null;
+  refreshToken: string | null;
+  userId: number | null;
+  username: string | null;
+  message: string | null;
+}
+
+export interface UsernameCheckResponse {
+  available: boolean;
+  message: string;
+}
+
+export interface RefreshResponse {
+  success: boolean;
+  accessToken: string | null;
+  refreshToken: string | null;
+  message: string | null;
+}
+
+export interface LogoutResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface AuthUser {
+  userId: number;
+  username: string;
+  accessToken: string;
+  refreshToken: string;
 }
