@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import { onMount } from "svelte";
   import { todayCards } from "$lib/api";
   import type { CardListItem } from "$lib/types";
@@ -18,7 +19,7 @@
 </script>
 
 {#if !loading && item}
-<a class={`today-brief group-${item.issueGroup.toLowerCase()}`} href={`/cards/${item.issueId}`}>
+<a class={`today-brief group-${item.issueGroup.toLowerCase()}`} href={`${base}/cards/${item.issueId}`}>
   <div class="brief-bar"></div>
   <div class="brief-content">
     <div class="brief-label">오늘의 브리핑</div>

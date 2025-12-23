@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import type { CardListItem, IssueGroup } from "$lib/types";
   import { listCards } from "$lib/api";
   import TodayBriefing from "$lib/components/TodayBriefing.svelte";
@@ -74,7 +75,7 @@
 
 <section class="list">
   {#each items as it}
-    <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`/cards/${it.issueId}`}>
+    <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`${base}/cards/${it.issueId}`}>
       <div class="card-meta">
         <span class="card-tag">{getGroupLabel(it.issueGroup)}</span>
         <span class="card-time">{formatRelativeTime(it.issueLastPublishedAt)}</span>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import { onMount } from "svelte";
   import { getCard } from "$lib/api";
   import type { CardDetail } from "$lib/types";
@@ -40,7 +41,7 @@
     <p class="error">{error}</p>
   </div>
 {:else if detail}
-  <a class="back-link" href="/">← 목록으로</a>
+  <a class="back-link" href="{base}/">← 목록으로</a>
 
   <header class="detail-header">
     <div class="detail-meta">

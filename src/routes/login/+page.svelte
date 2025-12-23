@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import { goto } from "$app/navigation";
   import { auth } from "$lib/stores/auth";
 
@@ -24,7 +25,7 @@
     loading = false;
 
     if (result.success) {
-      goto("/");
+      goto(`${base}/`);
     } else {
       error = result.message;
     }
@@ -68,7 +69,7 @@
     </form>
 
     <p class="signup-link">
-      계정이 없으신가요? <a href="/signup">회원가입</a>
+      계정이 없으신가요? <a href="{base}/signup">회원가입</a>
     </p>
   </div>
 </div>

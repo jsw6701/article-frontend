@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import type { TrendingItem } from "$lib/types";
   import { getTrending } from "$lib/api";
   import { getGroupLabel, formatRelativeTime } from "$lib/utils/labels";
@@ -39,7 +40,7 @@
 {:else}
   <section class="list">
     {#each items as it, idx}
-      <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`/cards/${it.issueId}`}>
+      <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`${base}/cards/${it.issueId}`}>
         <div class="card-rank">{idx + 1}</div>
         <div class="card-content">
           <div class="card-meta">

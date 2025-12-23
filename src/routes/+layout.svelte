@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../app.css';
+  import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { auth, isLoggedIn, currentUser } from '$lib/stores/auth';
 
@@ -14,17 +15,17 @@
 
 <div class="app">
   <header class="header">
-    <a class="brand" href="/">경제 브리핑</a>
+    <a class="brand" href="{base}/">경제 브리핑</a>
     <nav class="nav">
-      <a class="nav-link" href="/">카드</a>
-      <a class="nav-link" href="/today">오늘</a>
-      <a class="nav-link" href="/trending">급상승</a>
+      <a class="nav-link" href="{base}/">카드</a>
+      <a class="nav-link" href="{base}/today">오늘</a>
+      <a class="nav-link" href="{base}/trending">급상승</a>
       <span class="nav-divider"></span>
       {#if $isLoggedIn}
         <span class="user-name">{$currentUser?.username}</span>
         <button class="logout-btn" on:click={handleLogout}>로그아웃</button>
       {:else}
-        <a class="nav-link auth-link" href="/login">로그인</a>
+        <a class="nav-link auth-link" href="{base}/login">로그인</a>
       {/if}
     </nav>
   </header>

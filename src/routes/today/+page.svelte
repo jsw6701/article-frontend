@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import type { CardListItem } from "$lib/types";
   import { todayCards } from "$lib/api";
   import { getGroupLabel, formatRelativeTime } from "$lib/utils/labels";
@@ -39,7 +40,7 @@
 {:else}
   <section class="list">
     {#each items as it}
-      <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`/cards/${it.issueId}`}>
+      <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`${base}/cards/${it.issueId}`}>
         <div class="card-meta">
           <span class="card-tag">{getGroupLabel(it.issueGroup)}</span>
           <span class="card-time">{formatRelativeTime(it.issueLastPublishedAt)}</span>

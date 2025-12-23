@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   import { goto } from "$app/navigation";
   import { signUp, checkUsername } from "$lib/api";
   import type { Gender, AgeGroup } from "$lib/types";
@@ -77,7 +78,7 @@
     try {
       const res = await signUp({ username, password, gender, ageGroup });
       if (res.success) {
-        goto("/login?signup=success");
+        goto(`${base}/login?signup=success`);
       } else {
         error = res.message ?? "회원가입에 실패했습니다.";
       }
@@ -176,7 +177,7 @@
     </form>
 
     <p class="login-link">
-      이미 계정이 있으신가요? <a href="/login">로그인</a>
+      이미 계정이 있으신가요? <a href="{base}/login">로그인</a>
     </p>
   </div>
 </div>
