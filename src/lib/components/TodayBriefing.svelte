@@ -18,43 +18,91 @@
   });
 </script>
 
-{#if !loading && item}
-<a class={`today-brief group-${item.issueGroup.toLowerCase()}`} href={`${base}/cards/${item.issueId}`}>
-  <div class="brief-bar"></div>
-  <div class="brief-content">
-    <div class="brief-label">오늘의 브리핑</div>
-    <p class="brief-headline">{item.conclusion}</p>
-    <div class="brief-meta">
-      <span class="brief-tag">{getGroupLabel(item.issueGroup)}</span>
-      <span class="brief-time">{formatRelativeTime(item.cardUpdatedAt)}</span>
+{#if loading}
+  <section class="hero-skeleton">
+    <div class="skel-label"></div>
+    <div class="skel-title"></div>
+    <div class="skel-text"></div>
+  </section>
+{:else if item}
+  <a class={`today-brief group-${item.issueGroup.toLowerCase()}`} href={`${base}/cards/${item.issueId}`}>
+    <div class="brief-bar"></div>
+    <div class="brief-content">
+      <div class="brief-label">오늘의 브리핑</div>
+      <p class="brief-headline">{item.conclusion}</p>
+      <div class="brief-meta">
+        <span class="brief-tag">{getGroupLabel(item.issueGroup)}</span>
+        <span class="brief-time">{formatRelativeTime(item.cardUpdatedAt)}</span>
+      </div>
     </div>
-  </div>
-</a>
+  </a>
 {/if}
 
 <style>
+  /* Skeleton */
+  .hero-skeleton {
+    padding: var(--space-4);
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--border);
+  }
+
+  .skel-label {
+    width: 100px;
+    height: 16px;
+    background: linear-gradient(90deg, var(--border) 25%, var(--card-hover) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-2);
+  }
+
+  .skel-title {
+    width: 85%;
+    height: 24px;
+    background: linear-gradient(90deg, var(--border) 25%, var(--card-hover) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-2);
+  }
+
+  .skel-text {
+    width: 60%;
+    height: 16px;
+    background: linear-gradient(90deg, var(--border) 25%, var(--card-hover) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius);
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Today Brief Card */
   .today-brief {
     position: relative;
     display: flex;
     background: var(--card);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
     margin-bottom: var(--space-4);
     overflow: hidden;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    border: 1px solid var(--border);
+    transition: all 0.2s var(--ease);
   }
 
-  @media (hover: hover) {
-    .today-brief:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
-    }
+  .today-brief:hover {
+    border-color: var(--border-light);
+    transform: translateY(-2px);
   }
 
   .brief-bar {
     width: 4px;
     flex-shrink: 0;
-    background: var(--border);
+    background: var(--accent);
   }
 
   .brief-content {
@@ -72,7 +120,7 @@
   }
 
   .brief-headline {
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.55;
     font-weight: 600;
     color: var(--text-main);

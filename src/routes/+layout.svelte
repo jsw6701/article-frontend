@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { auth, isLoggedIn, currentUser } from '$lib/stores/auth';
 
@@ -11,102 +12,268 @@
   async function handleLogout() {
     await auth.logout();
   }
+
+  $: currentPath = $page.url.pathname;
+
+  function isActive(path: string): boolean {
+    if (path === '/') {
+      return currentPath === '/' || currentPath === base + '/';
+    }
+    return currentPath.includes(path);
+  }
+
+  // 현재 시간
+  let time = new Date();
+  onMount(() => {
+    const interval = setInterval(() => {
+      time = new Date();
+    }, 1000);
+    return () => clearInterval(interval);
+  });
+
+  $: hours = time.getHours().toString().padStart(2, '0');
+  $: minutes = time.getMinutes().toString().padStart(2, '0');
 </script>
 
 <div class="app">
-  <header class="header">
-    <a class="brand" href="{base}/">경제 브리핑</a>
-    <nav class="nav">
-      <a class="nav-link" href="{base}/">카드</a>
-      <a class="nav-link" href="{base}/today">오늘</a>
-      <a class="nav-link" href="{base}/trending">급상승</a>
-      <span class="nav-divider"></span>
+  <!-- 상단 상태바 -->
+  <header class="status-bar">
+    <div class="status-left">
+      <span class="live-dot"></span>
+      <span class="live-text">LIVE</span>
+    </div>
+    <div class="status-center">
+      <span class="time">{hours}:{minutes}</span>
+    </div>
+    <div class="status-right">
       {#if $isLoggedIn}
         <span class="user-name">{$currentUser?.username}</span>
-        <button class="logout-btn" on:click={handleLogout}>로그아웃</button>
+        <button class="logout-btn" on:click={handleLogout}>logout</button>
       {:else}
-        <a class="nav-link auth-link" href="{base}/login">로그인</a>
+        <a class="login-btn" href="{base}/login">login</a>
       {/if}
-    </nav>
+    </div>
   </header>
 
+  <!-- 메인 컨텐츠 -->
   <main class="main">
     <slot />
   </main>
+
+  <!-- 하단 네비게이션 -->
+  <nav class="bottom-nav">
+    <a
+      class="nav-item"
+      class:active={isActive('/')}
+      href="{base}/"
+    >
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </div>
+      <span class="nav-label">Dashboard</span>
+    </a>
+    <a
+      class="nav-item"
+      class:active={isActive('/today')}
+      href="{base}/today"
+    >
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <line x1="10" y1="9" x2="8" y2="9"/>
+        </svg>
+      </div>
+      <span class="nav-label">Feed</span>
+    </a>
+    <a
+      class="nav-item"
+      class:active={isActive('/trending')}
+      href="{base}/trending"
+    >
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/>
+          <polyline points="17,6 23,6 23,12"/>
+        </svg>
+      </div>
+      <span class="nav-label">Trending</span>
+    </a>
+  </nav>
 </div>
 
 <style>
   .app {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: var(--space-3);
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative;
   }
 
-  .header {
+  /* 상단 상태바 */
+  .status-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-3) 0;
-    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 
-  .brand {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text-main);
-  }
-
-  .nav {
+  .status-left {
     display: flex;
-    gap: var(--space-3);
+    align-items: center;
+    gap: var(--space-1);
   }
 
-  .nav-link {
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 4px transparent; }
+  }
+
+  .live-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-green);
+    letter-spacing: 0.1em;
+  }
+
+  .status-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .time {
     font-size: 14px;
-    font-weight: 500;
-    color: var(--text-sub);
-    transition: color 0.15s;
+    font-weight: 600;
+    color: var(--text-body);
+    font-variant-numeric: tabular-nums;
   }
 
-  .nav-link:hover {
-    color: var(--text-main);
-  }
-
-  .nav-divider {
-    width: 1px;
-    height: 14px;
-    background: var(--border);
-    margin: 0 var(--space-1);
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
   }
 
   .user-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-main);
+    font-size: 12px;
+    color: var(--text-sub);
   }
 
-  .logout-btn {
-    font-size: 13px;
+  .logout-btn,
+  .login-btn {
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-sub);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    transition: color 0.15s;
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    transition: all 0.2s var(--ease);
   }
 
-  .logout-btn:hover {
+  .logout-btn:hover,
+  .login-btn:hover {
     color: var(--text-main);
+    background: var(--card);
   }
 
-  .auth-link {
-    color: var(--accent);
-    font-weight: 500;
-  }
-
+  /* 메인 */
   .main {
-    padding-bottom: var(--space-4);
+    flex: 1;
+    padding: var(--space-4);
+    padding-bottom: 80px;
+  }
+
+  /* 하단 네비게이션 */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    justify-content: space-around;
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s var(--ease);
+  }
+
+  .nav-item:hover {
+    background: var(--card);
+  }
+
+  .nav-item.active {
+    background: var(--card);
+  }
+
+  .nav-item.active .nav-icon {
+    color: var(--accent);
+  }
+
+  .nav-item.active .nav-label {
+    color: var(--accent);
+  }
+
+  .nav-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--text-sub);
+    transition: color 0.2s var(--ease);
+  }
+
+  .nav-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .nav-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-sub);
+    transition: color 0.2s var(--ease);
+  }
+
+  @media (max-width: 480px) {
+    .status-bar {
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .main {
+      padding: var(--space-3);
+      padding-bottom: 80px;
+    }
   }
 </style>

@@ -6,6 +6,8 @@ export interface CardListItem {
   issueFingerprint: string;
   issueGroup: IssueGroup;
   issueTitle: string;
+  headline?: string | null;        // 사용자용 제목 (사건 요약)
+  signalSummary?: string | null;   // 리스트용 한 줄 요약 (왜 지금 중요한지)
   issueLastPublishedAt: string; // ISO
   cardStatus: CardStatus;
   cardUpdatedAt: string; // ISO
@@ -27,6 +29,8 @@ export interface CardDetail {
   issueFingerprint: string;
   issueGroup: IssueGroup;
   issueTitle: string;
+  headline?: string | null;        // 사용자용 제목 (사건 요약)
+  signalSummary?: string | null;   // 리스트용 한 줄 요약
   issueFirstPublishedAt: string;
   issueLastPublishedAt: string;
   cardStatus: CardStatus;
@@ -47,6 +51,8 @@ export interface PageResponse<T> {
 export interface TrendingItem {
   issueId: number;
   issueTitle: string;
+  headline?: string | null;        // 사용자용 제목
+  signalSummary?: string | null;   // 리스트용 한 줄 요약
   issueGroup: IssueGroup;
   articleCount: number;
   publisherCount: number;

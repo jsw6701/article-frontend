@@ -32,92 +32,111 @@
   }
 </script>
 
-<div class="login-page">
-  <div class="login-card">
-    <h1 class="title">로그인</h1>
+<div class="page">
+  <header class="page-header">
+    <h1>로그인</h1>
+    <p>계정에 로그인하세요</p>
+  </header>
 
-    <form on:submit|preventDefault={handleSubmit}>
-      <div class="field">
-        <label for="username">아이디</label>
-        <input
-          type="text"
-          id="username"
-          bind:value={username}
-          placeholder="아이디를 입력하세요"
-          autocomplete="username"
-        />
-      </div>
+  <form class="form" on:submit|preventDefault={handleSubmit}>
+    <div class="field">
+      <label for="username">아이디</label>
+      <input
+        type="text"
+        id="username"
+        bind:value={username}
+        placeholder="아이디 입력"
+        autocomplete="username"
+      />
+    </div>
 
-      <div class="field">
-        <label for="password">비밀번호</label>
-        <input
-          type="password"
-          id="password"
-          bind:value={password}
-          placeholder="비밀번호를 입력하세요"
-          autocomplete="current-password"
-        />
-      </div>
+    <div class="field">
+      <label for="password">비밀번호</label>
+      <input
+        type="password"
+        id="password"
+        bind:value={password}
+        placeholder="비밀번호 입력"
+        autocomplete="current-password"
+      />
+    </div>
 
-      {#if error}
-        <p class="error">{error}</p>
-      {/if}
+    {#if error}
+      <div class="error">{error}</div>
+    {/if}
 
-      <button type="submit" class="submit-btn" disabled={loading}>
-        {loading ? "로그인 중..." : "로그인"}
-      </button>
-    </form>
+    <button type="submit" class="submit" disabled={loading}>
+      {loading ? "로그인 중..." : "로그인"}
+    </button>
+  </form>
 
-    <p class="signup-link">
-      계정이 없으신가요? <a href="{base}/signup">회원가입</a>
-    </p>
+  <div class="footer">
+    <span>계정이 없으신가요?</span>
+    <a href="{base}/signup">회원가입</a>
   </div>
 </div>
 
 <style>
-  .login-page {
+  .page {
+    max-width: 360px;
+    margin: 0 auto;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 60vh;
+    flex-direction: column;
+    gap: var(--space-5);
   }
 
-  .login-card {
+  .page-header {
+    padding: var(--space-4) 0 var(--space-2);
+    text-align: center;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 4px;
+  }
+
+  .page-header p {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin: 0;
+  }
+
+  .form {
     background: var(--card);
+    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-4);
-    width: 100%;
-    max-width: 360px;
-    box-shadow: var(--shadow);
-  }
-
-  .title {
-    font-size: 22px;
-    font-weight: 700;
-    text-align: center;
-    margin-bottom: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
   .field {
-    margin-bottom: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
   }
 
   .field label {
-    display: block;
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-sub);
-    margin-bottom: 6px;
+    color: var(--text-body);
   }
 
   .field input {
-    width: 100%;
-    padding: 12px 14px;
+    padding: var(--space-3);
     font-size: 15px;
+    color: var(--text-main);
+    background: var(--card-hover);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg);
+    border-radius: var(--radius);
     transition: border-color 0.15s;
+  }
+
+  .field input::placeholder {
+    color: var(--text-sub);
   }
 
   .field input:focus {
@@ -126,43 +145,36 @@
   }
 
   .error {
-    color: #dc2626;
     font-size: 13px;
-    margin-bottom: var(--space-2);
-    text-align: center;
+    color: var(--accent-red);
+    padding: var(--space-3);
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: var(--radius);
   }
 
-  .submit-btn {
-    width: 100%;
-    padding: 14px;
+  .submit {
+    padding: var(--space-3);
     font-size: 15px;
     font-weight: 600;
     color: white;
     background: var(--accent);
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
+    border-radius: var(--radius);
     transition: opacity 0.15s;
   }
 
-  .submit-btn:hover:not(:disabled) {
-    opacity: 0.9;
-  }
-
-  .submit-btn:disabled {
+  .submit:disabled {
     opacity: 0.6;
-    cursor: not-allowed;
   }
 
-  .signup-link {
+  .footer {
     text-align: center;
     font-size: 13px;
     color: var(--text-sub);
-    margin-top: var(--space-3);
   }
 
-  .signup-link a {
+  .footer a {
     color: var(--accent);
     font-weight: 500;
+    margin-left: var(--space-1);
   }
 </style>

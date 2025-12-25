@@ -24,291 +24,355 @@
     }
   });
 
-  function formatArticleDate(dateStr: string): string {
+  function formatDate(dateStr: string): string {
     const date = new Date(dateStr);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}/${day}`;
+    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+  }
+
+  function getDisplayTitle(item: CardDetail): string {
+    return item.headline || item.issueTitle;
   }
 </script>
 
 {#if loading}
-  <div class="status">
-    <p>불러오는 중...</p>
+  <div class="loading">
+    <div class="spinner"></div>
   </div>
 {:else if error}
-  <div class="status">
-    <p class="error">{error}</p>
+  <div class="error">
+    <p>{error}</p>
+    <a href="{base}/">홈으로 돌아가기</a>
   </div>
-{:else if detail}
-  <a class="back-link" href="{base}/">← 목록으로</a>
+{:else if detail && card}
+  <article class="article">
+    <!-- 뒤로가기 -->
+    <a class="back" href="{base}/">← 뒤로</a>
 
-  <header class="detail-header">
-    <div class="detail-meta">
-      <span class="detail-tag">{getGroupLabel(detail.issueGroup)}</span>
-      <span class="detail-time">{formatRelativeTime(detail.issueLastPublishedAt)}</span>
-      {#if detail.issueArticleCount > 0}
-        <span class="detail-stats">기사 {detail.issueArticleCount}건 · {detail.issuePublisherCount}개 언론사</span>
+    <!-- 메인 헤더 -->
+    <header class="header">
+      <span class="cat">{getGroupLabel(detail.issueGroup)}</span>
+      <h1 class="title">{getDisplayTitle(detail)}</h1>
+      {#if detail.signalSummary}
+        <p class="signal">{detail.signalSummary}</p>
       {/if}
-    </div>
-    <h1 class="detail-title">{detail.issueTitle}</h1>
-  </header>
+      <div class="meta">
+        <span>{formatRelativeTime(detail.issueLastPublishedAt)}</span>
+        <span>·</span>
+        <span>{detail.issueArticleCount}개 기사</span>
+        <span>·</span>
+        <span>{detail.issuePublisherCount}개 매체</span>
+      </div>
+    </header>
 
-  <section class="section">
-    <h2 class="section-label">결론</h2>
-    <p class="section-text">{card?.conclusion ?? "-"}</p>
-  </section>
-
-  <section class="section">
-    <h2 class="section-label">왜 중요한가</h2>
-    <p class="section-text">{card?.why_it_matters ?? "-"}</p>
-  </section>
-
-  <section class="section">
-    <h2 class="section-label">근거</h2>
-    {#if card?.evidence?.length > 0}
-      <ul class="evidence-list">
-        {#each card.evidence as ev}
-          <li class="evidence-item">
-            <span class="evidence-source">{ev.source}</span>
-            <span class="evidence-fact">{ev.fact}</span>
-          </li>
-        {/each}
-      </ul>
-    {:else}
-      <p class="section-text muted">-</p>
-    {/if}
-  </section>
-
-  <section class="section">
-    <h2 class="section-label">반대 시나리오</h2>
-    <p class="section-text">{card?.counter_scenario ?? "-"}</p>
-  </section>
-
-  <section class="section">
-    <h2 class="section-label">영향도</h2>
-    <div class="impact-row">
-      <span class="impact-score">{card?.impact?.score ?? "-"}</span>
-      <span class="impact-max">/ 5</span>
-    </div>
-    <p class="section-text">{card?.impact?.reason ?? "-"}</p>
-  </section>
-
-  <section class="section">
-    <h2 class="section-label">행동 가이드</h2>
-    <p class="section-text">{card?.action_guide ?? "-"}</p>
-  </section>
-
-  {#if detail.articles?.length > 0}
-    <section class="section articles-section">
-      <h2 class="section-label">관련 기사</h2>
-      <ul class="articles-list">
-        {#each detail.articles as article}
-          <li class="article-item">
-            <a class="article-link" href={article.link} target="_blank" rel="noopener noreferrer">
-              <span class="article-title">{article.title}</span>
-              <span class="article-meta">
-                <span class="article-pub">{article.publisher}</span>
-                <span class="article-date">{formatArticleDate(article.publishedAt)}</span>
-              </span>
-            </a>
-          </li>
-        {/each}
-      </ul>
+    <!-- 핵심 결론 -->
+    <section class="section highlight">
+      <h2>핵심 요약</h2>
+      <p class="lead">{card.conclusion}</p>
     </section>
-  {/if}
+
+    <!-- 왜 중요한가 -->
+    <section class="section">
+      <h2>왜 중요한가</h2>
+      <p>{card.why_it_matters}</p>
+    </section>
+
+    <!-- 근거 -->
+    {#if card.evidence?.length > 0}
+      <section class="section">
+        <h2>근거</h2>
+        <ul class="evidence">
+          {#each card.evidence as ev}
+            <li>
+              <span class="ev-source">{ev.source}</span>
+              <span class="ev-fact">{ev.fact}</span>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+
+    <!-- 반대 시나리오 -->
+    <section class="section">
+      <h2>반대 시나리오</h2>
+      <p>{card.counter_scenario}</p>
+    </section>
+
+    <!-- 영향도 -->
+    <section class="section">
+      <h2>영향도</h2>
+      <div class="impact">
+        <div class="impact-score">
+          <span class="score-num">{card.impact?.score ?? '-'}</span>
+          <span class="score-max">/5</span>
+        </div>
+        <div class="impact-bar">
+          <div class="impact-fill" style="width: {((card.impact?.score ?? 0) / 5) * 100}%"></div>
+        </div>
+        <p class="impact-reason">{card.impact?.reason}</p>
+      </div>
+    </section>
+
+    <!-- 행동 가이드 -->
+    <section class="section action">
+      <h2>행동 가이드</h2>
+      <p>{card.action_guide}</p>
+    </section>
+
+    <!-- 관련 기사 -->
+    {#if detail.articles?.length > 0}
+      <section class="section">
+        <h2>관련 기사 ({detail.articles.length})</h2>
+        <ul class="articles">
+          {#each detail.articles as article}
+            <li>
+              <a href={article.link} target="_blank" rel="noopener noreferrer">
+                <span class="art-title">{article.title}</span>
+                <span class="art-meta">
+                  {article.publisher} · {formatDate(article.publishedAt)}
+                </span>
+              </a>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+  </article>
 {/if}
 
 <style>
-  .status {
-    padding: var(--space-4);
-    text-align: center;
+  .loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-6) 0;
+  }
+
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   .error {
-    color: #dc2626;
-    font-size: 14px;
-  }
-
-  .back-link {
-    display: inline-block;
-    font-size: 14px;
-    font-weight: 500;
+    text-align: center;
+    padding: var(--space-6) 0;
     color: var(--text-sub);
-    margin-bottom: var(--space-3);
-    transition: color 0.15s;
   }
 
-  .back-link:hover {
-    color: var(--text-main);
+  .error a {
+    display: inline-block;
+    margin-top: var(--space-3);
+    color: var(--accent);
   }
 
-  .detail-header {
-    margin-bottom: var(--space-4);
-  }
-
-  .detail-meta {
+  .article {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-2);
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
-  .detail-tag {
+  .back {
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  .back:hover {
+    color: var(--accent);
+  }
+
+  /* 헤더 */
+  .header {
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cat {
     font-size: 12px;
     font-weight: 600;
     color: var(--accent);
   }
 
-  .detail-time {
-    font-size: 12px;
-    color: var(--text-sub);
-  }
-
-  .detail-stats {
-    font-size: 11px;
-    color: var(--text-sub);
-    margin-left: auto;
-  }
-
-  .detail-title {
-    margin: 0;
+  .title {
     font-size: 22px;
     font-weight: 700;
-    line-height: 1.35;
     color: var(--text-main);
+    line-height: 1.3;
+    margin: var(--space-2) 0;
   }
 
+  .signal {
+    font-size: 15px;
+    color: var(--accent);
+    line-height: 1.5;
+    margin: 0 0 var(--space-2);
+  }
+
+  .meta {
+    font-size: 13px;
+    color: var(--text-sub);
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  /* 섹션 */
   .section {
     background: var(--card);
-    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     padding: var(--space-4);
-    box-shadow: var(--shadow);
-    margin-bottom: var(--space-2);
   }
 
-  .section-label {
-    margin: 0 0 var(--space-2);
-    font-size: 12px;
+  .section h2 {
+    font-size: 14px;
     font-weight: 600;
-    letter-spacing: 0.02em;
     color: var(--text-sub);
+    margin: 0 0 var(--space-3);
     text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
-  .section-text {
-    margin: 0;
+  .section p {
     font-size: 15px;
-    line-height: 1.65;
-    color: var(--text-body);
-  }
-
-  .section-text.muted {
-    color: var(--text-sub);
-  }
-
-  .evidence-list {
+    color: var(--text-main);
+    line-height: 1.7;
     margin: 0;
-    padding: 0;
-    list-style: none;
   }
 
-  .evidence-item {
-    padding: var(--space-2) 0;
+  .section.highlight {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.05);
   }
 
-  .evidence-item:first-child {
-    padding-top: 0;
+  .section.highlight h2 {
+    color: var(--accent);
   }
 
-  .evidence-item:last-child {
-    padding-bottom: 0;
+  .lead {
+    font-size: 17px;
+    font-weight: 500;
   }
 
-  .evidence-item + .evidence-item {
-    border-top: 1px solid var(--border);
+  .section.action {
+    border-color: var(--accent-green);
+    background: rgba(34, 197, 94, 0.05);
   }
 
-  .evidence-source {
-    display: block;
-    font-size: 12px;
+  .section.action h2 {
+    color: var(--accent-green);
+  }
+
+  /* 근거 */
+  .evidence {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .evidence li {
+    padding: var(--space-3);
+    background: var(--card-hover);
+    border-radius: var(--radius);
+  }
+
+  .ev-source {
+    display: inline-block;
+    font-size: 11px;
     font-weight: 600;
     color: var(--accent);
-    margin-bottom: 4px;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 8px;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-1);
   }
 
-  .evidence-fact {
+  .ev-fact {
     display: block;
     font-size: 14px;
-    line-height: 1.55;
     color: var(--text-body);
+    line-height: 1.6;
   }
 
-  .impact-row {
+  /* 영향도 */
+  .impact {
     display: flex;
-    align-items: baseline;
-    gap: 4px;
-    margin-bottom: var(--space-2);
+    flex-direction: column;
+    gap: var(--space-3);
   }
 
   .impact-score {
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
   }
 
-  .impact-max {
-    font-size: 14px;
+  .score-num {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .score-max {
+    font-size: 16px;
     color: var(--text-sub);
   }
 
+  .impact-bar {
+    height: 6px;
+    background: var(--card-hover);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  .impact-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: var(--radius-full);
+  }
+
+  .impact-reason {
+    font-size: 14px;
+    color: var(--text-body);
+  }
+
   /* 관련 기사 */
-  .articles-section {
-    margin-top: var(--space-4);
+  .articles {
+    display: flex;
+    flex-direction: column;
   }
 
-  .articles-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .articles li {
+    border-bottom: 1px solid var(--border);
   }
 
-  .article-item + .article-item {
-    border-top: 1px solid var(--border);
+  .articles li:last-child {
+    border-bottom: none;
   }
 
-  .article-link {
+  .articles a {
     display: block;
-    padding: var(--space-2) 0;
-    transition: opacity 0.15s;
+    padding: var(--space-3) 0;
   }
 
-  .article-link:hover {
-    opacity: 0.7;
+  .articles a:hover .art-title {
+    color: var(--accent);
   }
 
-  .article-title {
+  .art-title {
     display: block;
     font-size: 14px;
-    line-height: 1.45;
     color: var(--text-main);
+    line-height: 1.5;
     margin-bottom: 4px;
   }
 
-  .article-meta {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
+  .art-meta {
     font-size: 12px;
-  }
-
-  .article-pub {
-    color: var(--accent);
-    font-weight: 500;
-  }
-
-  .article-date {
     color: var(--text-sub);
   }
 </style>

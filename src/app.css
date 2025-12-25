@@ -1,57 +1,157 @@
-/* Bento Design Tokens */
+/* =============================================
+   Economic Briefing - Dark Bento Design
+   다크 테마 + 이전 디자인 구조 결합
+   ============================================= */
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
 :root {
-  /* Font */
-  font-family: Pretendard, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* 다크 테마 컬러 */
+  --bg: #0a0a0f;
+  --bg-surface: #12121a;
+  --card: #1a1a24;
+  --card-hover: #242430;
 
-  /* Color - 부드러운 배경 */
-  --bg: #f8f9fa;
-  --card: #ffffff;
-  --border: rgba(0, 0, 0, 0.06);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --text-main: #ffffff;
+  --text-body: #a1a1aa;
+  --text-sub: #71717a;
 
-  --text-main: #1a1a1a;
-  --text-body: #4a4a4a;
-  --text-sub: rgba(0, 0, 0, 0.45);
+  --border: #27272a;
+  --border-light: #3f3f46;
 
   /* Accent */
-  --accent: #2563eb;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.3);
 
-  /* Issue group accent (은은하게) */
-  --g-rate: #2563eb;
-  --g-fx: #7c3aed;
-  --g-stock: #16a34a;
-  --g-realestate: #ea580c;
-  --g-macro: #0ea5e9;
-  --g-policy: #64748b;
+  /* Issue group colors - 네온 느낌 */
+  --g-rate: #3b82f6;
+  --g-fx: #a855f7;
+  --g-stock: #22c55e;
+  --g-realestate: #f97316;
+  --g-macro: #06b6d4;
+  --g-policy: #94a3b8;
+
+  /* 기타 액센트 */
+  --accent-green: #22c55e;
+  --accent-red: #ef4444;
+  --accent-yellow: #eab308;
+
+  /* 그라데이션 */
+  --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --gradient-green: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%);
+
+  /* Shadow */
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 20px var(--accent-glow);
 
   /* Radius */
-  --radius: 18px;
-  --radius-lg: 22px;
+  --radius: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
 
   /* Spacing */
   --space-1: 8px;
   --space-2: 12px;
   --space-3: 16px;
   --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+
+  /* Font */
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  /* 효과 */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Reset & Base */
 *, *::before, *::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  margin: 0;
-  padding: 0;
   background: var(--bg);
   color: var(--text-main);
-  line-height: 1.5;
+  line-height: 1.6;
+  min-height: 100vh;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* 선택 영역 */
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+
+/* 포커스 */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* =============================================
+   유틸리티
+   ============================================= */
+
+/* 페이드 인 애니메이션 */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }

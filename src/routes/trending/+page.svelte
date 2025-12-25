@@ -2,7 +2,7 @@
   import { base } from '$app/paths';
   import type { TrendingItem } from "$lib/types";
   import { getTrending } from "$lib/api";
-  import { getGroupLabel, formatRelativeTime } from "$lib/utils/labels";
+  import { getGroupLabel } from "$lib/utils/labels";
 
   let items: TrendingItem[] = [];
   let loading = true;
@@ -18,104 +18,136 @@
       loading = false;
     }
   })();
+
+  function getDisplayTitle(item: TrendingItem): string {
+    return item.headline || item.issueTitle;
+  }
 </script>
 
-<header class="page-header">
-  <h1 class="page-title">급상승</h1>
-  <p class="page-desc">지금 화제가 되고 있는 이슈</p>
-</header>
+<div class="page">
+  <header class="page-header">
+    <h1>트렌딩</h1>
+    <p>가장 많이 보도된 이슈</p>
+  </header>
 
-{#if loading}
-  <div class="status">
-    <p>불러오는 중...</p>
-  </div>
-{:else if error}
-  <div class="status">
-    <p class="error">{error}</p>
-  </div>
-{:else if items.length === 0}
-  <div class="status">
-    <p class="muted">급상승 이슈가 없습니다</p>
-  </div>
-{:else}
-  <section class="list">
-    {#each items as it, idx}
-      <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`${base}/cards/${it.issueId}`}>
-        <div class="card-rank">{idx + 1}</div>
-        <div class="card-content">
-          <div class="card-meta">
-            <span class="card-tag">{getGroupLabel(it.issueGroup)}</span>
-            <span class="card-time">{formatRelativeTime(it.lastPublishedAt)}</span>
-            <span class="card-stats">기사 {it.articleCount}건 · {it.publisherCount}개 언론사</span>
+  {#if loading}
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  {:else if error}
+    <div class="error">
+      <p>{error}</p>
+      <button on:click={() => location.reload()}>다시 시도</button>
+    </div>
+  {:else if items.length === 0}
+    <div class="empty">
+      <p>트렌딩 이슈가 없습니다</p>
+    </div>
+  {:else}
+    <div class="list">
+      {#each items as item, i}
+        <a href="{base}/cards/{item.issueId}" class="item">
+          <div class="rank" class:top={i < 3}>{i + 1}</div>
+          <div class="content">
+            <span class="cat">{getGroupLabel(item.issueGroup)}</span>
+            <h2 class="title">{getDisplayTitle(item)}</h2>
+            {#if item.signalSummary}
+              <p class="signal">{item.signalSummary}</p>
+            {:else if item.conclusion}
+              <p class="desc">{item.conclusion}</p>
+            {/if}
+            <div class="stats">
+              <span>{item.articleCount}개 기사</span>
+              <span>·</span>
+              <span>{item.publisherCount}개 매체</span>
+            </div>
           </div>
-          <h3 class="card-title">{it.issueTitle}</h3>
-          {#if it.conclusion}
-            <p class="card-desc">{it.conclusion}</p>
-          {/if}
-        </div>
-      </a>
-    {/each}
-  </section>
-{/if}
+        </a>
+      {/each}
+    </div>
+  {/if}
+</div>
 
 <style>
-  .page-header {
-    margin-bottom: var(--space-3);
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
-  .page-title {
-    margin: 0;
-    font-size: 22px;
+  .page-header {
+    padding: var(--space-2) 0;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
     font-weight: 700;
     color: var(--text-main);
+    margin: 0 0 4px;
   }
 
-  .page-desc {
-    margin: var(--space-1) 0 0;
-    font-size: 14px;
+  .page-header p {
+    font-size: 13px;
     color: var(--text-sub);
+    margin: 0;
   }
 
-  .status {
-    padding: var(--space-4);
+  .loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-6) 0;
+  }
+
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .error, .empty {
     text-align: center;
-  }
-
-  .error {
-    color: #dc2626;
-    font-size: 14px;
-  }
-
-  .muted {
+    padding: var(--space-6) 0;
     color: var(--text-sub);
-    font-size: 14px;
+  }
+
+  .error button {
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    background: var(--accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--radius);
   }
 
   .list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .card {
-    display: flex;
-    align-items: flex-start;
     gap: var(--space-3);
+  }
+
+  .item {
+    display: flex;
+    gap: var(--space-4);
     background: var(--card);
-    border-radius: var(--radius);
-    padding: var(--space-3) var(--space-4);
-    box-shadow: var(--shadow);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: border-color 0.15s;
   }
 
-  @media (hover: hover) {
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
-    }
+  .item:hover {
+    border-color: var(--border-light);
   }
 
-  .card-rank {
+  .rank {
     flex-shrink: 0;
     width: 28px;
     height: 28px;
@@ -124,75 +156,61 @@
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
-    color: var(--accent);
-    background: rgba(37, 99, 235, 0.1);
-    border-radius: 8px;
+    color: var(--text-sub);
+    background: var(--card-hover);
+    border-radius: var(--radius);
   }
 
-  .card-content {
+  .rank.top {
+    color: white;
+    background: var(--accent);
+  }
+
+  .content {
     flex: 1;
     min-width: 0;
   }
 
-  .card-meta {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-1);
-  }
-
-  .card-tag {
+  .cat {
     font-size: 12px;
     font-weight: 600;
     color: var(--accent);
   }
 
-  .card-time {
-    font-size: 12px;
-    color: var(--text-sub);
-  }
-
-  .card-stats {
-    font-size: 11px;
-    color: var(--text-sub);
-    margin-left: auto;
-  }
-
-  .card-title {
-    margin: 0 0 var(--space-1);
+  .title {
     font-size: 16px;
-    font-weight: 650;
-    line-height: 1.4;
+    font-weight: 600;
     color: var(--text-main);
+    line-height: 1.4;
+    margin: 4px 0 var(--space-2);
   }
 
-  .card-desc {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.55;
+  .item:hover .title {
+    color: var(--accent);
+  }
+
+  .signal {
+    font-size: 13px;
+    color: var(--accent);
+    line-height: 1.5;
+    margin: 0 0 var(--space-2);
+  }
+
+  .desc {
+    font-size: 13px;
     color: var(--text-body);
+    line-height: 1.5;
+    margin: 0 0 var(--space-2);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  /* 그룹별 태그 컬러 */
-  :global(.group-rate) .card-tag { color: var(--g-rate); }
-  :global(.group-rate) .card-rank { color: var(--g-rate); background: rgba(37, 99, 235, 0.1); }
-
-  :global(.group-fx) .card-tag { color: var(--g-fx); }
-  :global(.group-fx) .card-rank { color: var(--g-fx); background: rgba(124, 58, 237, 0.1); }
-
-  :global(.group-stock) .card-tag { color: var(--g-stock); }
-  :global(.group-stock) .card-rank { color: var(--g-stock); background: rgba(22, 163, 74, 0.1); }
-
-  :global(.group-realestate) .card-tag { color: var(--g-realestate); }
-  :global(.group-realestate) .card-rank { color: var(--g-realestate); background: rgba(234, 88, 12, 0.1); }
-
-  :global(.group-macro) .card-tag { color: var(--g-macro); }
-  :global(.group-macro) .card-rank { color: var(--g-macro); background: rgba(14, 165, 233, 0.1); }
-
-  :global(.group-policy) .card-tag { color: var(--g-policy); }
-  :global(.group-policy) .card-rank { color: var(--g-policy); background: rgba(100, 116, 139, 0.1); }
+  .stats {
+    font-size: 12px;
+    color: var(--text-sub);
+    display: flex;
+    gap: var(--space-1);
+  }
 </style>

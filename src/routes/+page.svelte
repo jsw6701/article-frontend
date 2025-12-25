@@ -1,168 +1,281 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import type { CardListItem, IssueGroup } from "$lib/types";
-  import { listCards } from "$lib/api";
-  import TodayBriefing from "$lib/components/TodayBriefing.svelte";
-  import { getGroupLabel, formatRelativeTime } from "$lib/utils/labels";
+  import type { CardListItem, TrendingItem } from "$lib/types";
+  import { listCards, getTrending } from "$lib/api";
+  import { getGroupLabel } from "$lib/utils/labels";
 
-  const groups: { label: string; value?: IssueGroup }[] = [
-    { label: "전체", value: undefined },
-    { label: "금리", value: "RATE" },
-    { label: "환율", value: "FX" },
-    { label: "주식", value: "STOCK" },
-    { label: "부동산", value: "REALESTATE" },
-    { label: "거시경제", value: "MACRO" },
-    { label: "정책", value: "POLICY" }
-  ];
+  let cards: CardListItem[] = [];
+  let trends: TrendingItem[] = [];
+  let loading = true;
 
-  let group: IssueGroup | undefined = undefined;
-  let items: CardListItem[] = [];
-  let loading = false;
-  let error: string | null = null;
-
-  let limit = 20;
-  let offset = 0;
-  let hasMore = true;
-
-  async function load(reset = false) {
-    if (loading) return;
-    loading = true;
-    error = null;
-
+  (async () => {
     try {
-      if (reset) {
-        items = [];
-        offset = 0;
-        hasMore = true;
-      }
-
-      const res = await listCards({ group, limit, offset });
-      items = [...items, ...res.items];
-      offset += res.items.length;
-      hasMore = res.items.length === limit;
-    } catch (e: any) {
-      error = e?.message ?? "Failed to load";
+      const [cardsRes, trendingRes] = await Promise.all([
+        listCards({ limit: 6, offset: 0 }),
+        getTrending({ limit: 5 })
+      ]);
+      cards = cardsRes.items;
+      trends = trendingRes.items;
+    } catch (e) {
+      console.error(e);
     } finally {
       loading = false;
     }
+  })();
+
+  function getTimeAgo(date: string): string {
+    const now = new Date();
+    const then = new Date(date);
+    const diff = Math.floor((now.getTime() - then.getTime()) / 1000 / 60);
+    if (diff < 60) return `${diff}분 전`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}시간 전`;
+    return `${Math.floor(diff / 1440)}일 전`;
   }
 
-  load(true);
-
-  function onChangeGroup(v?: IssueGroup) {
-    group = v;
-    load(true);
+  // headline이 있으면 headline, 없으면 issueTitle 사용
+  function getDisplayTitle(item: CardListItem | TrendingItem): string {
+    return item.headline || item.issueTitle;
   }
 </script>
 
-<TodayBriefing />
+{#if loading}
+  <div class="loading">
+    <div class="spinner"></div>
+  </div>
+{:else}
+  <div class="home">
+    <!-- 인사 헤더 -->
+    <div class="greeting">
+      <p class="greeting-sub">오늘의 경제</p>
+      <h1 class="greeting-main">브리핑</h1>
+    </div>
 
-<section class="filter">
-  {#each groups as g}
-    <button
-      class="filter-chip"
-      class:active={g.value === group}
-      on:click={() => onChangeGroup(g.value)}
-    >
-      {g.label}
-    </button>
-  {/each}
-</section>
+    <!-- 트렌딩 섹션 -->
+    {#if trends.length > 0}
+      <section class="section">
+        <div class="section-head">
+          <h2>실시간 트렌드</h2>
+          <a href="{base}/trending">더보기</a>
+        </div>
+        <div class="trend-list">
+          {#each trends.slice(0, 5) as trend, i}
+            <a href="{base}/cards/{trend.issueId}" class="trend-item">
+              <span class="trend-rank" class:top={i < 3}>{i + 1}</span>
+              <div class="trend-content">
+                <span class="trend-title">{getDisplayTitle(trend)}</span>
+                {#if trend.signalSummary}
+                  <span class="trend-summary">{trend.signalSummary}</span>
+                {/if}
+              </div>
+              <span class="trend-count">{trend.articleCount}</span>
+            </a>
+          {/each}
+        </div>
+      </section>
+    {/if}
 
-{#if error}
-  <p class="error">{error}</p>
-{/if}
-
-<section class="list">
-  {#each items as it}
-    <a class={`card group-${it.issueGroup.toLowerCase()}`} href={`${base}/cards/${it.issueId}`}>
-      <div class="card-meta">
-        <span class="card-tag">{getGroupLabel(it.issueGroup)}</span>
-        <span class="card-time">{formatRelativeTime(it.issueLastPublishedAt)}</span>
-        {#if it.articleCount > 0}
-          <span class="card-stats">기사 {it.articleCount}건 · {it.publisherCount}개 언론사</span>
-        {/if}
-      </div>
-      <h3 class="card-title">{it.issueTitle}</h3>
-      <p class="card-desc">{it.conclusion ?? "내용을 불러오는 중..."}</p>
-    </a>
-  {/each}
-</section>
-
-{#if hasMore}
-  <div class="load-more">
-    <button class="load-btn" disabled={loading} on:click={() => load(false)}>
-      {loading ? "불러오는 중..." : "더 보기"}
-    </button>
+    <!-- 최신 브리핑 -->
+    {#if cards.length > 0}
+      <section class="section">
+        <div class="section-head">
+          <h2>최신 브리핑</h2>
+          <a href="{base}/today">더보기</a>
+        </div>
+        <div class="card-list">
+          {#each cards as card}
+            <a href="{base}/cards/{card.issueId}" class="card">
+              <div class="card-top">
+                <span class="card-cat">{getGroupLabel(card.issueGroup)}</span>
+                <span class="card-time">{getTimeAgo(card.issueLastPublishedAt)}</span>
+              </div>
+              <h3 class="card-title">{getDisplayTitle(card)}</h3>
+              {#if card.signalSummary}
+                <p class="card-summary">{card.signalSummary}</p>
+              {:else if card.conclusion}
+                <p class="card-desc">{card.conclusion}</p>
+              {/if}
+              <div class="card-bottom">
+                <span class="card-articles">{card.articleCount}개 기사</span>
+              </div>
+            </a>
+          {/each}
+        </div>
+      </section>
+    {/if}
   </div>
 {/if}
 
 <style>
-  .filter {
+  .loading {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1);
-    margin-bottom: var(--space-4);
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
   }
 
-  .filter-chip {
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 500;
-    border: none;
-    border-radius: 999px;
-    background: var(--card);
-    color: var(--text-sub);
-    cursor: pointer;
-    transition: all 0.15s;
-    box-shadow: var(--shadow);
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 
-  .filter-chip:hover {
-    color: var(--text-body);
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
-  .filter-chip.active {
-    background: var(--text-main);
-    color: #fff;
-  }
-
-  .error {
-    color: #dc2626;
-    font-size: 14px;
-    margin-bottom: var(--space-3);
-  }
-
-  .list {
+  .home {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-5);
+  }
+
+  /* 인사 */
+  .greeting {
+    padding: var(--space-2) 0;
+  }
+
+  .greeting-sub {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin: 0 0 4px;
+  }
+
+  .greeting-main {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+  }
+
+  /* 섹션 */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .section-head h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+  }
+
+  .section-head a {
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  .section-head a:hover {
+    color: var(--accent);
+  }
+
+  /* 트렌드 */
+  .trend-list {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .trend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .trend-item:last-child {
+    border-bottom: none;
+  }
+
+  .trend-item:hover {
+    background: var(--card-hover);
+  }
+
+  .trend-rank {
+    width: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-sub);
+    flex-shrink: 0;
+  }
+
+  .trend-rank.top {
+    color: var(--accent);
+  }
+
+  .trend-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .trend-title {
+    display: block;
+    font-size: 14px;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .trend-summary {
+    display: block;
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .trend-count {
+    font-size: 12px;
+    color: var(--text-sub);
+    background: var(--card-hover);
+    padding: 2px 8px;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+  }
+
+  /* 카드 리스트 */
+  .card-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
   }
 
   .card {
-    display: block;
     background: var(--card);
-    border-radius: var(--radius);
-    padding: var(--space-3) var(--space-4);
-    box-shadow: var(--shadow);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    transition: all 0.15s;
   }
 
-  @media (hover: hover) {
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
-    }
+  .card:hover {
+    border-color: var(--border-light);
   }
 
-  .card-meta {
+  .card-top {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--space-2);
   }
 
-  .card-tag {
+  .card-cat {
     font-size: 12px;
     font-weight: 600;
     color: var(--accent);
@@ -173,64 +286,43 @@
     color: var(--text-sub);
   }
 
-  .card-stats {
-    font-size: 11px;
-    color: var(--text-sub);
-    margin-left: auto;
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.4;
+    margin: 0 0 var(--space-2);
   }
 
-  .card-title {
-    margin: 0 0 var(--space-1);
-    font-size: 16px;
-    font-weight: 650;
-    line-height: 1.4;
-    color: var(--text-main);
+  .card:hover .card-title {
+    color: var(--accent);
+  }
+
+  .card-summary {
+    font-size: 13px;
+    color: var(--accent);
+    line-height: 1.5;
+    margin: 0 0 var(--space-3);
   }
 
   .card-desc {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: 13px;
     color: var(--text-body);
+    line-height: 1.5;
+    margin: 0 0 var(--space-3);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .load-more {
-    margin-top: var(--space-4);
-    text-align: center;
+  .card-bottom {
+    display: flex;
+    align-items: center;
   }
 
-  .load-btn {
-    padding: var(--space-2) var(--space-4);
-    font-size: 14px;
-    font-weight: 500;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--card);
-    color: var(--text-body);
-    cursor: pointer;
-    box-shadow: var(--shadow);
-    transition: all 0.15s;
+  .card-articles {
+    font-size: 12px;
+    color: var(--text-sub);
   }
-
-  .load-btn:hover:not(:disabled) {
-    background: var(--text-main);
-    color: #fff;
-  }
-
-  .load-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  /* 그룹별 태그 컬러 */
-  :global(.group-rate) .card-tag { color: var(--g-rate); }
-  :global(.group-fx) .card-tag { color: var(--g-fx); }
-  :global(.group-stock) .card-tag { color: var(--g-stock); }
-  :global(.group-realestate) .card-tag { color: var(--g-realestate); }
-  :global(.group-macro) .card-tag { color: var(--g-macro); }
-  :global(.group-policy) .card-tag { color: var(--g-policy); }
 </style>
