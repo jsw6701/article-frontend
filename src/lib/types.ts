@@ -15,6 +15,7 @@ export interface CardListItem {
   cardJson?: any | null;
   articleCount: number;
   publisherCount: number;
+  viewCount?: number;              // 조회수
 }
 
 export interface ArticleSummary {
@@ -39,6 +40,7 @@ export interface CardDetail {
   issueArticleCount: number;
   issuePublisherCount: number;
   articles: ArticleSummary[];
+  viewCount?: number;              // 조회수
 }
 
 export interface PageResponse<T> {
@@ -59,6 +61,7 @@ export interface TrendingItem {
   lastPublishedAt: string;
   score: number;
   conclusion: string | null;
+  viewCount?: number;              // 조회수
 }
 
 export interface TrendingResponse {
@@ -122,4 +125,39 @@ export interface AuthUser {
   username: string;
   accessToken: string;
   refreshToken: string;
+}
+
+// ========== Bookmark Types ==========
+
+export interface BookmarkItem {
+  issueId: number;
+  issueTitle: string;
+  headline?: string | null;
+  signalSummary?: string | null;
+  issueGroup: IssueGroup;
+  conclusion?: string | null;
+  bookmarkedAt: string;
+  viewCount?: number;              // 조회수
+}
+
+// ========== Popular Types ==========
+
+export interface PopularCard {
+  card: CardListItem;
+  viewCount: number;
+}
+
+export interface PopularCardsResponse {
+  items: PopularCard[];
+  count: number;
+}
+
+export interface BookmarkStatusResponse {
+  issueId: number;
+  bookmarked: boolean;
+}
+
+export interface BookmarkListResponse {
+  items: BookmarkItem[];
+  count: number;
 }

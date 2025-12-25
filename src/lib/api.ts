@@ -11,7 +11,10 @@ import type {
   LoginResponse,
   UsernameCheckResponse,
   RefreshResponse,
-  LogoutResponse
+  LogoutResponse,
+  BookmarkStatusResponse,
+  BookmarkListResponse,
+  PopularCardsResponse
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -75,6 +78,14 @@ export function getTrending(opts: { hours?: number; limit?: number } = {}) {
   );
 }
 
+export function getPopularCards(opts: { limit?: number } = {}) {
+  return http<PopularCardsResponse>(
+    `/api/trending/popular${qs({
+      limit: opts.limit ?? 10,
+    })}`
+  );
+}
+
 // ========== Auth API ==========
 
 export function signUp(request: SignUpRequest) {
@@ -110,5 +121,33 @@ export function logout(userId: number) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId }),
+  });
+}
+
+// ========== Bookmark API ==========
+
+export function addBookmark(issueId: number, token: string) {
+  return http<{ success: boolean; message: string }>(`/api/bookmarks/${issueId}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function removeBookmark(issueId: number, token: string) {
+  return http<{ success: boolean; message: string }>(`/api/bookmarks/${issueId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function getBookmarkStatus(issueId: number, token: string) {
+  return http<BookmarkStatusResponse>(`/api/bookmarks/${issueId}/status`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export function getMyBookmarks(token: string) {
+  return http<BookmarkListResponse>("/api/bookmarks", {
+    headers: { Authorization: `Bearer ${token}` },
   });
 }

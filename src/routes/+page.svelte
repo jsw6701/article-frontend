@@ -1,21 +1,27 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import type { CardListItem, TrendingItem } from "$lib/types";
-  import { listCards, getTrending } from "$lib/api";
-  import { getGroupLabel } from "$lib/utils/labels";
+  import type { CardListItem, TrendingItem, PopularCard } from "$lib/types";
+  import { listCards, getTrending, getPopularCards } from "$lib/api";
+  import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
 
   let cards: CardListItem[] = [];
   let trends: TrendingItem[] = [];
+  let popular: PopularCard[] = [];
   let loading = true;
+
+  // 탭 상태: 'trend' | 'popular'
+  let activeTab: 'trend' | 'popular' = 'trend';
 
   (async () => {
     try {
-      const [cardsRes, trendingRes] = await Promise.all([
+      const [cardsRes, trendingRes, popularRes] = await Promise.all([
         listCards({ limit: 6, offset: 0 }),
-        getTrending({ limit: 5 })
+        getTrending({ limit: 5 }),
+        getPopularCards({ limit: 5 })
       ]);
       cards = cardsRes.items;
       trends = trendingRes.items;
+      popular = popularRes.items;
     } catch (e) {
       console.error(e);
     } finally {
@@ -36,6 +42,10 @@
   function getDisplayTitle(item: CardListItem | TrendingItem): string {
     return item.headline || item.issueTitle;
   }
+
+  function getPopularDisplayTitle(item: PopularCard): string {
+    return item.card.headline || item.card.issueTitle;
+  }
 </script>
 
 {#if loading}
@@ -50,29 +60,72 @@
       <h1 class="greeting-main">브리핑</h1>
     </div>
 
-    <!-- 트렌딩 섹션 -->
-    {#if trends.length > 0}
-      <section class="section">
-        <div class="section-head">
-          <h2>실시간 트렌드</h2>
-          <a href="{base}/trending">더보기</a>
-        </div>
-        <div class="trend-list">
-          {#each trends.slice(0, 5) as trend, i}
-            <a href="{base}/cards/{trend.issueId}" class="trend-item">
-              <span class="trend-rank" class:top={i < 3}>{i + 1}</span>
-              <div class="trend-content">
-                <span class="trend-title">{getDisplayTitle(trend)}</span>
-                {#if trend.signalSummary}
-                  <span class="trend-summary">{trend.signalSummary}</span>
-                {/if}
-              </div>
-              <span class="trend-count">{trend.articleCount}</span>
-            </a>
-          {/each}
-        </div>
-      </section>
-    {/if}
+    <!-- 화제 & 조회수 순위 (탭 전환) -->
+    <section class="section">
+      <div class="tab-header">
+        <button
+          class="tab-btn"
+          class:active={activeTab === 'trend'}
+          on:click={() => activeTab = 'trend'}
+        >
+          화제
+        </button>
+        <button
+          class="tab-btn"
+          class:active={activeTab === 'popular'}
+          on:click={() => activeTab = 'popular'}
+        >
+          조회수
+        </button>
+        <a href="{base}/trending" class="tab-more">더보기</a>
+      </div>
+
+      <div class="tab-content">
+        {#if activeTab === 'trend'}
+          <div class="rank-list">
+            {#each trends.slice(0, 3) as trend, i}
+              <a href="{base}/cards/{trend.issueId}" class="rank-item">
+                <span class="rank-num" class:top={i < 3}>{i + 1}</span>
+                <div class="rank-content">
+                  <span class="rank-title">{getDisplayTitle(trend)}</span>
+                  {#if trend.signalSummary}
+                    <span class="rank-sub">{trend.signalSummary}</span>
+                  {/if}
+                </div>
+                <span class="rank-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                  </svg>
+                  {trend.articleCount}
+                </span>
+              </a>
+            {/each}
+          </div>
+        {:else}
+          <div class="rank-list">
+            {#each popular.slice(0, 3) as item, i}
+              <a href="{base}/cards/{item.card.issueId}" class="rank-item">
+                <span class="rank-num" class:top={i < 3}>{i + 1}</span>
+                <div class="rank-content">
+                  <span class="rank-title">{getPopularDisplayTitle(item)}</span>
+                  {#if item.card.signalSummary}
+                    <span class="rank-sub">{item.card.signalSummary}</span>
+                  {/if}
+                </div>
+                <span class="rank-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  {formatViewCount(item.viewCount)}
+                </span>
+              </a>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </section>
 
     <!-- 최신 브리핑 -->
     {#if cards.length > 0}
@@ -96,6 +149,9 @@
               {/if}
               <div class="card-bottom">
                 <span class="card-articles">{card.articleCount}개 기사</span>
+                {#if card.viewCount}
+                  <span class="card-views">{formatViewCount(card.viewCount)} 조회</span>
+                {/if}
               </div>
             </a>
           {/each}
@@ -179,15 +235,52 @@
     color: var(--accent);
   }
 
-  /* 트렌드 */
-  .trend-list {
+  /* 탭 헤더 */
+  .tab-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-bottom: var(--space-3);
+  }
+
+  .tab-btn {
+    padding: var(--space-2) var(--space-3);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-sub);
+    background: transparent;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-main);
+  }
+
+  .tab-btn.active {
+    color: var(--text-main);
+    background: var(--card);
+  }
+
+  .tab-more {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  .tab-more:hover {
+    color: var(--accent);
+  }
+
+  /* 랭킹 리스트 (공통) */
+  .rank-list {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
 
-  .trend-item {
+  .rank-item {
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -196,41 +289,49 @@
     transition: background 0.15s;
   }
 
-  .trend-item:last-child {
+  .rank-item:last-child {
     border-bottom: none;
   }
 
-  .trend-item:hover {
+  .rank-item:hover {
     background: var(--card-hover);
   }
 
-  .trend-rank {
-    width: 20px;
-    font-size: 14px;
+  .rank-num {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-sub);
+    background: var(--card-hover);
+    border-radius: var(--radius);
     flex-shrink: 0;
   }
 
-  .trend-rank.top {
-    color: var(--accent);
+  .rank-num.top {
+    color: white;
+    background: var(--accent);
   }
 
-  .trend-content {
+  .rank-content {
     flex: 1;
     min-width: 0;
   }
 
-  .trend-title {
+  .rank-title {
     display: block;
     font-size: 14px;
+    font-weight: 500;
     color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .trend-summary {
+  .rank-sub {
     display: block;
     font-size: 12px;
     color: var(--text-sub);
@@ -240,13 +341,21 @@
     text-overflow: ellipsis;
   }
 
-  .trend-count {
+  .rank-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     color: var(--text-sub);
     background: var(--card-hover);
-    padding: 2px 8px;
+    padding: 4px 10px;
     border-radius: var(--radius);
     flex-shrink: 0;
+  }
+
+  .rank-badge svg {
+    width: 12px;
+    height: 12px;
   }
 
   /* 카드 리스트 */
@@ -319,10 +428,21 @@
   .card-bottom {
     display: flex;
     align-items: center;
+    gap: var(--space-2);
   }
 
   .card-articles {
     font-size: 12px;
     color: var(--text-sub);
+  }
+
+  .card-views {
+    font-size: 12px;
+    color: var(--text-sub);
+  }
+
+  .card-views::before {
+    content: "·";
+    margin-right: var(--space-2);
   }
 </style>

@@ -1,42 +1,54 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import type { CardListItem } from "$lib/types";
-  import { todayCards } from "$lib/api";
-  import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { getMyBookmarks, removeBookmark } from "$lib/api";
+  import type { BookmarkItem } from "$lib/types";
+  import { isLoggedIn, currentUser } from "$lib/stores/auth";
+  import { getGroupLabel } from "$lib/utils/labels";
 
-  let items: CardListItem[] = [];
+  let items: BookmarkItem[] = [];
   let loading = true;
   let error: string | null = null;
 
-  (async () => {
+  onMount(async () => {
+    // 로그인 체크
+    if (!$isLoggedIn || !$currentUser) {
+      goto(`${base}/login`);
+      return;
+    }
+
     try {
-      const res = await todayCards(20);
+      const res = await getMyBookmarks($currentUser.accessToken);
       items = res.items;
     } catch (e: any) {
       error = e?.message ?? "불러오기 실패";
     } finally {
       loading = false;
     }
-  })();
+  });
 
-  function getTimeAgo(date: string): string {
-    const now = new Date();
-    const then = new Date(date);
-    const diff = Math.floor((now.getTime() - then.getTime()) / 1000 / 60);
-    if (diff < 60) return `${diff}분 전`;
-    if (diff < 1440) return `${Math.floor(diff / 60)}시간 전`;
-    return `${Math.floor(diff / 1440)}일 전`;
+  async function handleRemove(issueId: number) {
+    if (!$currentUser) return;
+
+    try {
+      await removeBookmark(issueId, $currentUser.accessToken);
+      items = items.filter(item => item.issueId !== issueId);
+    } catch (e) {
+      console.error("북마크 삭제 실패:", e);
+    }
   }
 
-  function getDisplayTitle(item: CardListItem): string {
+  function getDisplayTitle(item: BookmarkItem): string {
     return item.headline || item.issueTitle;
   }
+
 </script>
 
 <div class="page">
   <header class="page-header">
-    <h1>피드</h1>
-    <p>최근 7일간 업데이트</p>
+    <h1>북마크</h1>
+    <p>저장한 브리핑</p>
   </header>
 
   {#if loading}
@@ -50,29 +62,32 @@
     </div>
   {:else if items.length === 0}
     <div class="empty">
-      <p>최근 업데이트가 없습니다</p>
+      <p>저장한 브리핑이 없습니다</p>
+      <a href="{base}/">브리핑 둘러보기</a>
     </div>
   {:else}
     <div class="list">
       {#each items as item}
-        <a href="{base}/cards/{item.issueId}" class="item">
-          <div class="item-header">
+        <div class="item">
+          <a href="{base}/cards/{item.issueId}" class="item-content">
             <span class="item-cat">{getGroupLabel(item.issueGroup)}</span>
-            <span class="item-time">{getTimeAgo(item.issueLastPublishedAt)}</span>
-          </div>
-          <h2 class="item-title">{getDisplayTitle(item)}</h2>
-          {#if item.signalSummary}
-            <p class="item-signal">{item.signalSummary}</p>
-          {:else if item.conclusion}
-            <p class="item-desc">{item.conclusion}</p>
-          {/if}
-          <div class="item-footer">
-            <span>{item.articleCount}개 기사</span>
-            {#if item.viewCount}
-              <span class="item-views">{formatViewCount(item.viewCount)} 조회</span>
+            <h2 class="item-title">{getDisplayTitle(item)}</h2>
+            {#if item.signalSummary}
+              <p class="item-signal">{item.signalSummary}</p>
+            {:else if item.conclusion}
+              <p class="item-desc">{item.conclusion}</p>
             {/if}
-          </div>
-        </a>
+          </a>
+          <button
+            class="remove-btn"
+            on:click={() => handleRemove(item.issueId)}
+            aria-label="북마크 삭제"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -127,7 +142,8 @@
     color: var(--text-sub);
   }
 
-  .error button {
+  .error button, .empty a {
+    display: inline-block;
     margin-top: var(--space-3);
     padding: var(--space-2) var(--space-4);
     background: var(--accent);
@@ -144,10 +160,11 @@
   }
 
   .item {
+    display: flex;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    overflow: hidden;
     transition: border-color 0.15s;
   }
 
@@ -155,22 +172,18 @@
     border-color: var(--border-light);
   }
 
-  .item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-2);
+  .item-content {
+    flex: 1;
+    padding: var(--space-4);
+    min-width: 0;
   }
 
   .item-cat {
+    display: block;
     font-size: 12px;
     font-weight: 600;
     color: var(--accent);
-  }
-
-  .item-time {
-    font-size: 12px;
-    color: var(--text-sub);
+    margin-bottom: var(--space-2);
   }
 
   .item-title {
@@ -189,29 +202,37 @@
     font-size: 13px;
     color: var(--accent);
     line-height: 1.5;
-    margin: 0 0 var(--space-3);
+    margin: 0;
   }
 
   .item-desc {
     font-size: 13px;
     color: var(--text-body);
     line-height: 1.5;
-    margin: 0 0 var(--space-3);
+    margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .item-footer {
-    font-size: 12px;
-    color: var(--text-sub);
+  .remove-btn {
+    width: 48px;
     display: flex;
-    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    border-left: 1px solid var(--border);
+    transition: all 0.15s;
   }
 
-  .item-views::before {
-    content: "·";
-    margin-right: var(--space-2);
+  .remove-btn:hover {
+    background: var(--card-hover);
+    color: var(--accent-red);
+  }
+
+  .remove-btn svg {
+    width: 18px;
+    height: 18px;
   }
 </style>

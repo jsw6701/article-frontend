@@ -28,3 +28,10 @@ export function formatRelativeTime(dateStr: string): string {
   const day = date.getDate();
   return `${month}/${day}`;
 }
+
+export function formatViewCount(count: number | undefined): string {
+  if (!count) return "0";
+  if (count >= 10000) return `${(count / 10000).toFixed(1)}만`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}천`;
+  return count.toString();
+}

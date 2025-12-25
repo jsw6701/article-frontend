@@ -1,9 +1,10 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { onMount } from "svelte";
-  import { getCard } from "$lib/api";
+  import { getCard, getBookmarkStatus, addBookmark, removeBookmark } from "$lib/api";
   import type { CardDetail } from "$lib/types";
-  import { getGroupLabel, formatRelativeTime } from "$lib/utils/labels";
+  import { getGroupLabel, formatRelativeTime, formatViewCount } from "$lib/utils/labels";
+  import { isLoggedIn, currentUser } from "$lib/stores/auth";
 
   export let params: { issueId: string };
 
@@ -12,17 +13,50 @@
   let loading = true;
   let error: string | null = null;
 
+  // 북마크 상태
+  let isBookmarked = false;
+  let bookmarkLoading = false;
+
   onMount(async () => {
     try {
       detail = await getCard(Number(params.issueId));
       const raw = detail.cardJson;
       card = typeof raw === "string" ? JSON.parse(raw) : raw;
+
+      // 로그인된 경우 북마크 상태 확인
+      if ($isLoggedIn && $currentUser) {
+        try {
+          const status = await getBookmarkStatus(Number(params.issueId), $currentUser.accessToken);
+          isBookmarked = status.bookmarked;
+        } catch {
+          // 북마크 상태 조회 실패는 무시
+        }
+      }
     } catch (e: any) {
       error = e?.message ?? "불러오기 실패";
     } finally {
       loading = false;
     }
   });
+
+  async function toggleBookmark() {
+    if (!$isLoggedIn || !$currentUser) return;
+
+    bookmarkLoading = true;
+    try {
+      if (isBookmarked) {
+        await removeBookmark(Number(params.issueId), $currentUser.accessToken);
+        isBookmarked = false;
+      } else {
+        await addBookmark(Number(params.issueId), $currentUser.accessToken);
+        isBookmarked = true;
+      }
+    } catch (e) {
+      console.error("북마크 처리 실패:", e);
+    } finally {
+      bookmarkLoading = false;
+    }
+  }
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr);
@@ -50,7 +84,22 @@
 
     <!-- 메인 헤더 -->
     <header class="header">
-      <span class="cat">{getGroupLabel(detail.issueGroup)}</span>
+      <div class="header-top">
+        <span class="cat">{getGroupLabel(detail.issueGroup)}</span>
+        {#if $isLoggedIn}
+          <button
+            class="bookmark-btn"
+            class:active={isBookmarked}
+            on:click={toggleBookmark}
+            disabled={bookmarkLoading}
+            aria-label={isBookmarked ? "북마크 해제" : "북마크 추가"}
+          >
+            <svg viewBox="0 0 24 24" fill={isBookmarked ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
+        {/if}
+      </div>
       <h1 class="title">{getDisplayTitle(detail)}</h1>
       {#if detail.signalSummary}
         <p class="signal">{detail.signalSummary}</p>
@@ -61,6 +110,10 @@
         <span>{detail.issueArticleCount}개 기사</span>
         <span>·</span>
         <span>{detail.issuePublisherCount}개 매체</span>
+        {#if detail.viewCount}
+          <span>·</span>
+          <span>{formatViewCount(detail.viewCount)} 조회</span>
+        {/if}
       </div>
     </header>
 
@@ -192,10 +245,45 @@
     border-bottom: 1px solid var(--border);
   }
 
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   .cat {
     font-size: 12px;
     font-weight: 600;
     color: var(--accent);
+  }
+
+  .bookmark-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-sub);
+    border-radius: var(--radius);
+    transition: all 0.2s var(--ease);
+  }
+
+  .bookmark-btn:hover {
+    color: var(--accent);
+    background: var(--card-hover);
+  }
+
+  .bookmark-btn.active {
+    color: var(--accent);
+  }
+
+  .bookmark-btn:disabled {
+    opacity: 0.5;
+  }
+
+  .bookmark-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .title {
