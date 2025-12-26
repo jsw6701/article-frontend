@@ -1,8 +1,10 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { onMount } from 'svelte';
   import type { TrendingItem, PopularCard } from "$lib/types";
   import { getTrending, getPopularCards } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
+  import { isLoggedIn } from "$lib/stores/auth";
 
   let trends: TrendingItem[] = [];
   let popular: PopularCard[] = [];
@@ -12,20 +14,26 @@
   // 탭 상태
   let activeTab: 'trend' | 'popular' = 'trend';
 
-  (async () => {
-    try {
-      const [trendRes, popularRes] = await Promise.all([
-        getTrending({ limit: 10 }),
-        getPopularCards({ limit: 10 })
-      ]);
-      trends = trendRes.items;
-      popular = popularRes.items;
-    } catch (e: any) {
-      error = e?.message ?? "불러오기 실패";
-    } finally {
-      loading = false;
-    }
-  })();
+  onMount(() => {
+    const unsubscribe = isLoggedIn.subscribe(async (loggedIn) => {
+      if (loggedIn) {
+        try {
+          const [trendRes, popularRes] = await Promise.all([
+            getTrending({ limit: 10 }),
+            getPopularCards({ limit: 10 })
+          ]);
+          trends = trendRes.items;
+          popular = popularRes.items;
+        } catch (e: any) {
+          error = e?.message ?? "불러오기 실패";
+        } finally {
+          loading = false;
+        }
+        unsubscribe();
+      }
+    });
+    return unsubscribe;
+  });
 
   function getDisplayTitle(item: TrendingItem): string {
     return item.headline || item.issueTitle;

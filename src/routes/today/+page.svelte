@@ -1,23 +1,31 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { onMount } from 'svelte';
   import type { CardListItem } from "$lib/types";
   import { todayCards } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
+  import { isLoggedIn } from "$lib/stores/auth";
 
   let items: CardListItem[] = [];
   let loading = true;
   let error: string | null = null;
 
-  (async () => {
-    try {
-      const res = await todayCards(20);
-      items = res.items;
-    } catch (e: any) {
-      error = e?.message ?? "불러오기 실패";
-    } finally {
-      loading = false;
-    }
-  })();
+  onMount(() => {
+    const unsubscribe = isLoggedIn.subscribe(async (loggedIn) => {
+      if (loggedIn) {
+        try {
+          const res = await todayCards(20);
+          items = res.items;
+        } catch (e: any) {
+          error = e?.message ?? "불러오기 실패";
+        } finally {
+          loading = false;
+        }
+        unsubscribe();
+      }
+    });
+    return unsubscribe;
+  });
 
   function getTimeAgo(date: string): string {
     const now = new Date();

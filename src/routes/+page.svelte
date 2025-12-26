@@ -1,8 +1,10 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { onMount } from 'svelte';
   import type { CardListItem, TrendingItem, PopularCard } from "$lib/types";
   import { listCards, getTrending, getPopularCards } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
+  import { isLoggedIn } from "$lib/stores/auth";
 
   let cards: CardListItem[] = [];
   let trends: TrendingItem[] = [];
@@ -12,22 +14,30 @@
   // 탭 상태: 'trend' | 'popular'
   let activeTab: 'trend' | 'popular' = 'trend';
 
-  (async () => {
-    try {
-      const [cardsRes, trendingRes, popularRes] = await Promise.all([
-        listCards({ limit: 6, offset: 0 }),
-        getTrending({ limit: 5 }),
-        getPopularCards({ limit: 5 })
-      ]);
-      cards = cardsRes.items;
-      trends = trendingRes.items;
-      popular = popularRes.items;
-    } catch (e) {
-      console.error(e);
-    } finally {
-      loading = false;
-    }
-  })();
+  onMount(() => {
+    // 로그인 상태가 확인된 후 API 호출
+    const unsubscribe = isLoggedIn.subscribe(async (loggedIn) => {
+      if (loggedIn) {
+        try {
+          const [cardsRes, trendingRes, popularRes] = await Promise.all([
+            listCards({ limit: 6, offset: 0 }),
+            getTrending({ limit: 5 }),
+            getPopularCards({ limit: 5 })
+          ]);
+          cards = cardsRes.items;
+          trends = trendingRes.items;
+          popular = popularRes.items;
+        } catch (e) {
+          console.error(e);
+        } finally {
+          loading = false;
+        }
+        unsubscribe();
+      }
+    });
+
+    return unsubscribe;
+  });
 
   function getTimeAgo(date: string): string {
     const now = new Date();
