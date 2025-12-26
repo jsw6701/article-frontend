@@ -53,6 +53,7 @@
   --accent-green: #4ade80;
   --accent-red: #f87171;
   --accent-yellow: #fbbf24;
+  --accent-shift: #fb923c;
 
   /* Issue group colors - 다크 테마용 네온 톤 */
   --g-rate: #60a5fa;
@@ -96,6 +97,7 @@
   --accent-green: #5a9a68;
   --accent-red: #c45c4a;
   --accent-yellow: #b8943c;
+  --accent-shift: #e07830;
 
   /* Issue group colors - 뮤트된 자연스러운 톤 */
   --g-rate: #4a7c59;

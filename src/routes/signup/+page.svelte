@@ -5,6 +5,7 @@
   import { signUp, checkUsername, sendEmailVerification, verifyEmail } from "$lib/api";
   import { auth, isLoggedIn } from "$lib/stores/auth";
   import type { Gender, AgeGroup } from "$lib/types";
+  import ShiftLogo from "$lib/components/ShiftLogo.svelte";
 
   // 이미 로그인된 경우 메인으로 리다이렉트
   onMount(() => {
@@ -212,7 +213,7 @@
 
 <div class="page">
   <header class="page-header">
-    <h1>회원가입</h1>
+    <ShiftLogo size="lg" />
     <p>새 계정을 만드세요</p>
   </header>
 
@@ -382,12 +383,6 @@
     text-align: center;
   }
 
-  .page-header h1 {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 4px;
-  }
 
   .page-header p {
     font-size: 13px;

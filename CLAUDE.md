@@ -1,7 +1,7 @@
-# News Briefing Frontend - Claude Code Guide
+# SHIFT Frontend - Claude Code Guide
 
 ## Project Overview
-뉴스 브리핑 프론트엔드 앱 (SvelteKit 기반)
+SHIFT - 뉴스 브리핑 프론트엔드 앱 (SvelteKit 기반)
 
 ## Important References
 

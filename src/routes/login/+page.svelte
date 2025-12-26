@@ -3,6 +3,7 @@
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { auth, isLoggedIn } from "$lib/stores/auth";
+  import ShiftLogo from "$lib/components/ShiftLogo.svelte";
 
   let username = "";
   let password = "";
@@ -44,7 +45,7 @@
 
 <div class="page">
   <header class="page-header">
-    <h1>로그인</h1>
+    <ShiftLogo size="lg" />
     <p>계정에 로그인하세요</p>
   </header>
 
@@ -100,12 +101,6 @@
     text-align: center;
   }
 
-  .page-header h1 {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 4px;
-  }
 
   .page-header p {
     font-size: 13px;

@@ -6,6 +6,7 @@
   import { onMount } from 'svelte';
   import { auth, isLoggedIn, currentUser } from '$lib/stores/auth';
   import { theme } from '$lib/stores/theme';
+  import ShiftLogo from '$lib/components/ShiftLogo.svelte';
 
   // 인증 불필요한 페이지
   const publicPaths = ['/login', '/signup'];
@@ -68,10 +69,11 @@
     <div class="status-left">
       <span class="live-dot"></span>
       <span class="live-text">LIVE</span>
-    </div>
-    <div class="status-center">
       <span class="time">{hours}:{minutes}</span>
     </div>
+    <a class="status-center" href="{base}/">
+      <ShiftLogo size="sm" />
+    </a>
     <div class="status-right">
       <button class="theme-btn" on:click={() => theme.toggle()} aria-label="테마 전환">
         {#if $theme === 'dark'}
@@ -216,6 +218,7 @@
     font-weight: 700;
     color: var(--accent-green);
     letter-spacing: 0.1em;
+    line-height: 1;
   }
 
   .status-center {
@@ -225,10 +228,12 @@
   }
 
   .time {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-body);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-sub);
     font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-left: var(--space-1);
   }
 
   .status-right {
@@ -240,6 +245,7 @@
   .user-name {
     font-size: 12px;
     color: var(--text-sub);
+    line-height: 1;
   }
 
   .theme-btn {
@@ -271,6 +277,7 @@
     padding: 4px 8px;
     border-radius: var(--radius);
     transition: all 0.2s var(--ease);
+    line-height: 1;
   }
 
   .logout-btn:hover,
