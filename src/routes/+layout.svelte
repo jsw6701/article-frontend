@@ -2,14 +2,39 @@
   import '../app.css';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { auth, isLoggedIn, currentUser } from '$lib/stores/auth';
   import { theme } from '$lib/stores/theme';
 
+  // 인증 불필요한 페이지
+  const publicPaths = ['/login', '/signup'];
+
+  let authInitialized = false;
+
   onMount(() => {
     auth.init();
     theme.init();
+    authInitialized = true;
+
+    // 401 에러 시 로그인 페이지로 이동
+    const handleAuthExpired = () => {
+      auth.clear();
+      goto(`${base}/login`);
+    };
+    window.addEventListener("auth:expired", handleAuthExpired);
+    return () => window.removeEventListener("auth:expired", handleAuthExpired);
   });
+
+  // 인증 체크 및 리다이렉트
+  $: if (authInitialized && typeof window !== 'undefined') {
+    const path = $page.url.pathname.replace(base, '') || '/';
+    const isPublicPage = publicPaths.some(p => path.startsWith(p));
+
+    if (!$isLoggedIn && !isPublicPage) {
+      goto(`${base}/login`);
+    }
+  }
 
   async function handleLogout() {
     await auth.logout();

@@ -78,8 +78,31 @@ export type AgeGroup = "TEENS" | "TWENTIES" | "THIRTIES" | "FORTIES" | "FIFTIES"
 export interface SignUpRequest {
   username: string;
   password: string;
+  email: string;
   gender: Gender;
   ageGroup: AgeGroup;
+}
+
+// ========== Email Verification Types ==========
+
+export interface SendEmailVerificationRequest {
+  email: string;
+}
+
+export interface SendEmailVerificationResponse {
+  success: boolean;
+  expireMinutes: number | null;
+  message: string | null;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  code: string;
+}
+
+export interface VerifyEmailResponse {
+  success: boolean;
+  message: string | null;
 }
 
 export interface SignUpResponse {

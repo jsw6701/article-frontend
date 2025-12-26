@@ -14,10 +14,34 @@ import type {
   LogoutResponse,
   BookmarkStatusResponse,
   BookmarkListResponse,
-  PopularCardsResponse
+  PopularCardsResponse,
+  SendEmailVerificationRequest,
+  SendEmailVerificationResponse,
+  VerifyEmailRequest,
+  VerifyEmailResponse
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+const AUTH_STORAGE_KEY = "auth_user";
+
+function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const user = JSON.parse(stored);
+    return user?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function clearAuth() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.dispatchEvent(new CustomEvent("auth:expired"));
+  }
+}
 
 function qs(params: Record<string, string | number | boolean | undefined | null>) {
   const sp = new URLSearchParams();
@@ -29,11 +53,28 @@ function qs(params: Record<string, string | number | boolean | undefined | null>
   return s ? `?${s}` : "";
 }
 
-async function http<T>(path: string, init?: RequestInit): Promise<T> {
+async function http<T>(path: string, init?: RequestInit, requireAuth = false): Promise<T> {
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> ?? {}) };
+
+  // 인증이 필요한 요청에 토큰 자동 추가
+  if (requireAuth) {
+    const token = getAccessToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { ...(init?.headers ?? {}) },
+    headers,
   });
+
+  // 401 Unauthorized - 로그아웃 처리
+  if (res.status === 401 && requireAuth) {
+    clearAuth();
+    throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
+  }
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
@@ -57,16 +98,18 @@ export function listCards(opts: {
       to: opts.to,
       limit: opts.limit ?? 20,
       offset: opts.offset ?? 0,
-    })}`
+    })}`,
+    undefined,
+    true  // 인증 필요
   );
 }
 
 export function getCard(issueId: number) {
-  return http<CardDetail>(`/api/cards/${issueId}`);
+  return http<CardDetail>(`/api/cards/${issueId}`, undefined, true);
 }
 
 export function todayCards(limit = 7) {
-  return http<PageResponse<CardListItem>>(`/api/cards/today${qs({ limit })}`);
+  return http<PageResponse<CardListItem>>(`/api/cards/today${qs({ limit })}`, undefined, true);
 }
 
 export function getTrending(opts: { hours?: number; limit?: number } = {}) {
@@ -74,7 +117,9 @@ export function getTrending(opts: { hours?: number; limit?: number } = {}) {
     `/api/trending${qs({
       hours: opts.hours ?? 3,
       limit: opts.limit ?? 10,
-    })}`
+    })}`,
+    undefined,
+    true  // 인증 필요
   );
 }
 
@@ -82,11 +127,29 @@ export function getPopularCards(opts: { limit?: number } = {}) {
   return http<PopularCardsResponse>(
     `/api/trending/popular${qs({
       limit: opts.limit ?? 10,
-    })}`
+    })}`,
+    undefined,
+    true  // 인증 필요
   );
 }
 
 // ========== Auth API ==========
+
+export function sendEmailVerification(request: SendEmailVerificationRequest) {
+  return http<SendEmailVerificationResponse>("/api/auth/email/send-verification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
+export function verifyEmail(request: VerifyEmailRequest) {
+  return http<VerifyEmailResponse>("/api/auth/email/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
 
 export function signUp(request: SignUpRequest) {
   return http<SignUpResponse>("/api/auth/signup", {
@@ -126,28 +189,22 @@ export function logout(userId: number) {
 
 // ========== Bookmark API ==========
 
-export function addBookmark(issueId: number, token: string) {
+export function addBookmark(issueId: number) {
   return http<{ success: boolean; message: string }>(`/api/bookmarks/${issueId}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  }, true);
 }
 
-export function removeBookmark(issueId: number, token: string) {
+export function removeBookmark(issueId: number) {
   return http<{ success: boolean; message: string }>(`/api/bookmarks/${issueId}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  }, true);
 }
 
-export function getBookmarkStatus(issueId: number, token: string) {
-  return http<BookmarkStatusResponse>(`/api/bookmarks/${issueId}/status`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export function getBookmarkStatus(issueId: number) {
+  return http<BookmarkStatusResponse>(`/api/bookmarks/${issueId}/status`, undefined, true);
 }
 
-export function getMyBookmarks(token: string) {
-  return http<BookmarkListResponse>("/api/bookmarks", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export function getMyBookmarks() {
+  return http<BookmarkListResponse>("/api/bookmarks", undefined, true);
 }

@@ -4,7 +4,7 @@
   import { goto } from "$app/navigation";
   import { getMyBookmarks, removeBookmark } from "$lib/api";
   import type { BookmarkItem } from "$lib/types";
-  import { isLoggedIn, currentUser } from "$lib/stores/auth";
+  import { isLoggedIn } from "$lib/stores/auth";
   import { getGroupLabel } from "$lib/utils/labels";
 
   let items: BookmarkItem[] = [];
@@ -12,14 +12,8 @@
   let error: string | null = null;
 
   onMount(async () => {
-    // 로그인 체크
-    if (!$isLoggedIn || !$currentUser) {
-      goto(`${base}/login`);
-      return;
-    }
-
     try {
-      const res = await getMyBookmarks($currentUser.accessToken);
+      const res = await getMyBookmarks();
       items = res.items;
     } catch (e: any) {
       error = e?.message ?? "불러오기 실패";
@@ -29,10 +23,8 @@
   });
 
   async function handleRemove(issueId: number) {
-    if (!$currentUser) return;
-
     try {
-      await removeBookmark(issueId, $currentUser.accessToken);
+      await removeBookmark(issueId);
       items = items.filter(item => item.issueId !== issueId);
     } catch (e) {
       console.error("북마크 삭제 실패:", e);

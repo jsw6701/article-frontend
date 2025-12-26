@@ -1,12 +1,25 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { goto } from "$app/navigation";
-  import { signUp, checkUsername } from "$lib/api";
+  import { onMount } from "svelte";
+  import { signUp, checkUsername, sendEmailVerification, verifyEmail } from "$lib/api";
+  import { auth, isLoggedIn } from "$lib/stores/auth";
   import type { Gender, AgeGroup } from "$lib/types";
+
+  // 이미 로그인된 경우 메인으로 리다이렉트
+  onMount(() => {
+    auth.init();
+  });
+
+  $: if ($isLoggedIn) {
+    goto(`${base}/`);
+  }
 
   let username = "";
   let password = "";
   let passwordConfirm = "";
+  let email = "";
+  let verificationCode = "";
   let gender: Gender = "MALE";
   let ageGroup: AgeGroup = "TWENTIES";
 
@@ -15,6 +28,23 @@
     available: null,
     message: "",
   };
+
+  let emailStatus: {
+    sending: boolean;
+    sent: boolean;
+    verifying: boolean;
+    verified: boolean;
+    message: string;
+    expireMinutes: number | null;
+  } = {
+    sending: false,
+    sent: false,
+    verifying: false,
+    verified: false,
+    message: "",
+    expireMinutes: null,
+  };
+
   let error = "";
   let loading = false;
 
@@ -50,6 +80,80 @@
     }, 500);
   }
 
+  function isValidEmail(email: string): boolean {
+    const emailRegex = /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    return emailRegex.test(email);
+  }
+
+  async function handleSendVerification() {
+    if (!isValidEmail(email)) {
+      emailStatus.message = "유효한 이메일을 입력해주세요";
+      return;
+    }
+
+    emailStatus.sending = true;
+    emailStatus.message = "";
+
+    try {
+      const res = await sendEmailVerification({ email });
+      if (res.success) {
+        emailStatus = {
+          ...emailStatus,
+          sending: false,
+          sent: true,
+          message: "인증 코드가 발송되었습니다",
+          expireMinutes: res.expireMinutes,
+        };
+      } else {
+        emailStatus = {
+          ...emailStatus,
+          sending: false,
+          message: res.message ?? "발송 실패",
+        };
+      }
+    } catch {
+      emailStatus = {
+        ...emailStatus,
+        sending: false,
+        message: "서버 오류",
+      };
+    }
+  }
+
+  async function handleVerifyCode() {
+    if (verificationCode.length !== 6) {
+      emailStatus.message = "6자리 코드를 입력해주세요";
+      return;
+    }
+
+    emailStatus.verifying = true;
+    emailStatus.message = "";
+
+    try {
+      const res = await verifyEmail({ email, code: verificationCode });
+      if (res.success) {
+        emailStatus = {
+          ...emailStatus,
+          verifying: false,
+          verified: true,
+          message: "인증 완료",
+        };
+      } else {
+        emailStatus = {
+          ...emailStatus,
+          verifying: false,
+          message: res.message ?? "인증 실패",
+        };
+      }
+    } catch {
+      emailStatus = {
+        ...emailStatus,
+        verifying: false,
+        message: "서버 오류",
+      };
+    }
+  }
+
   async function handleSubmit() {
     error = "";
 
@@ -59,6 +163,14 @@
     }
     if (!/^[a-zA-Z0-9]+$/.test(username)) {
       error = "아이디는 영문과 숫자만 가능합니다";
+      return;
+    }
+    if (!isValidEmail(email)) {
+      error = "유효한 이메일을 입력해주세요";
+      return;
+    }
+    if (!emailStatus.verified) {
+      error = "이메일 인증이 필요합니다";
       return;
     }
     if (password.length < 8) {
@@ -76,7 +188,7 @@
 
     loading = true;
     try {
-      const res = await signUp({ username, password, gender, ageGroup });
+      const res = await signUp({ username, password, email, gender, ageGroup });
       if (res.success) {
         goto(`${base}/login?signup=success`);
       } else {
@@ -125,6 +237,76 @@
         </span>
       {/if}
     </div>
+
+    <div class="field">
+      <label for="email">이메일</label>
+      <div class="email-row">
+        <input
+          type="email"
+          id="email"
+          bind:value={email}
+          placeholder="example@email.com"
+          autocomplete="email"
+          disabled={emailStatus.verified}
+          class:success={emailStatus.verified}
+        />
+        <button
+          type="button"
+          class="verify-btn"
+          on:click={handleSendVerification}
+          disabled={emailStatus.sending || emailStatus.verified || !email}
+        >
+          {#if emailStatus.sending}
+            발송중...
+          {:else if emailStatus.verified}
+            인증완료
+          {:else if emailStatus.sent}
+            재발송
+          {:else}
+            인증요청
+          {/if}
+        </button>
+      </div>
+      {#if emailStatus.message && !emailStatus.verified}
+        <span class="hint" class:success={emailStatus.sent && !emailStatus.verified} class:error={!emailStatus.sent && !emailStatus.verified}>
+          {emailStatus.message}
+          {#if emailStatus.expireMinutes}
+            ({emailStatus.expireMinutes}분 유효)
+          {/if}
+        </span>
+      {/if}
+      {#if emailStatus.verified}
+        <span class="hint success">이메일 인증 완료</span>
+      {/if}
+    </div>
+
+    {#if emailStatus.sent && !emailStatus.verified}
+      <div class="field">
+        <label for="verificationCode">인증 코드</label>
+        <div class="code-row">
+          <input
+            type="text"
+            id="verificationCode"
+            bind:value={verificationCode}
+            placeholder="6자리 코드 입력"
+            maxlength="6"
+            inputmode="numeric"
+            pattern="[0-9]*"
+          />
+          <button
+            type="button"
+            class="verify-btn"
+            on:click={handleVerifyCode}
+            disabled={emailStatus.verifying || verificationCode.length !== 6}
+          >
+            {emailStatus.verifying ? "확인중..." : "확인"}
+          </button>
+        </div>
+        {#if emailStatus.message && emailStatus.sent && !emailStatus.verified}
+          <span class="hint error">{emailStatus.message}</span>
+        {/if}
+      </div>
+    {/if}
 
     <div class="field">
       <label for="password">비밀번호</label>
@@ -236,7 +418,8 @@
   }
 
   .field input[type="text"],
-  .field input[type="password"] {
+  .field input[type="password"],
+  .field input[type="email"] {
     padding: var(--space-3);
     font-size: 15px;
     color: var(--text-main);
@@ -261,6 +444,42 @@
 
   .field input.error {
     border-color: var(--accent-red);
+  }
+
+  .email-row,
+  .code-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .email-row input,
+  .code-row input {
+    flex: 1;
+    padding-right: 80px;
+  }
+
+  .verify-btn {
+    position: absolute;
+    right: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s;
+  }
+
+  .verify-btn:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .verify-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .hint {

@@ -61,6 +61,10 @@ function createAuthStore() {
       localStorage.removeItem(STORAGE_KEY);
     },
 
+    clear() {
+      set(null);
+    },
+
     async refresh(): Promise<boolean> {
       const stored = getStoredUser();
       if (!stored) return false;

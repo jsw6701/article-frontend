@@ -4,7 +4,7 @@
   import { getCard, getBookmarkStatus, addBookmark, removeBookmark } from "$lib/api";
   import type { CardDetail } from "$lib/types";
   import { getGroupLabel, formatRelativeTime, formatViewCount } from "$lib/utils/labels";
-  import { isLoggedIn, currentUser } from "$lib/stores/auth";
+  import { isLoggedIn } from "$lib/stores/auth";
 
   export let params: { issueId: string };
 
@@ -24,9 +24,9 @@
       card = typeof raw === "string" ? JSON.parse(raw) : raw;
 
       // 로그인된 경우 북마크 상태 확인
-      if ($isLoggedIn && $currentUser) {
+      if ($isLoggedIn) {
         try {
-          const status = await getBookmarkStatus(Number(params.issueId), $currentUser.accessToken);
+          const status = await getBookmarkStatus(Number(params.issueId));
           isBookmarked = status.bookmarked;
         } catch {
           // 북마크 상태 조회 실패는 무시
@@ -40,15 +40,15 @@
   });
 
   async function toggleBookmark() {
-    if (!$isLoggedIn || !$currentUser) return;
+    if (!$isLoggedIn) return;
 
     bookmarkLoading = true;
     try {
       if (isBookmarked) {
-        await removeBookmark(Number(params.issueId), $currentUser.accessToken);
+        await removeBookmark(Number(params.issueId));
         isBookmarked = false;
       } else {
-        await addBookmark(Number(params.issueId), $currentUser.accessToken);
+        await addBookmark(Number(params.issueId));
         isBookmarked = true;
       }
     } catch (e) {

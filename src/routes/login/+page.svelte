@@ -1,12 +1,22 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { goto } from "$app/navigation";
-  import { auth } from "$lib/stores/auth";
+  import { onMount } from "svelte";
+  import { auth, isLoggedIn } from "$lib/stores/auth";
 
   let username = "";
   let password = "";
   let error = "";
   let loading = false;
+
+  // 이미 로그인된 경우 메인으로 리다이렉트
+  onMount(() => {
+    auth.init();
+  });
+
+  $: if ($isLoggedIn) {
+    goto(`${base}/`);
+  }
 
   async function handleSubmit() {
     error = "";
