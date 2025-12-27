@@ -2,8 +2,8 @@
   import { base } from '$app/paths';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import type { AdminUserListItem, AdminUserListResponse, UserRole } from '$lib/types';
-  import { getAdminUsers, updateUserRole, deleteUser } from '$lib/api';
+  import type { AdminUserListItem, AdminUserListResponse, UserRole, UserGrade, GradeInfo } from '$lib/types';
+  import { getAdminUsers, updateUserRole, deleteUser, getAdminGrades, updateUserGrade } from '$lib/api';
   import { isLoggedIn, isAdmin, currentUser } from '$lib/stores/auth';
 
   let users: AdminUserListItem[] = [];
@@ -22,6 +22,12 @@
   let showDeleteModal = false;
   let deleteTarget: AdminUserListItem | null = null;
 
+  // 등급 변경 모달
+  let showGradeModal = false;
+  let gradeTarget: AdminUserListItem | null = null;
+  let selectedGrade: UserGrade | null = null;
+  let grades: GradeInfo[] = [];
+
   let currentUserId: number | null = null;
 
   onMount(() => {
@@ -36,7 +42,7 @@
             goto(`${base}/`);
             return;
           }
-          await loadUsers();
+          await Promise.all([loadUsers(), loadGrades()]);
           adminUnsubscribe();
         });
         unsubscribe();
@@ -48,6 +54,14 @@
       userUnsubscribe();
     };
   });
+
+  async function loadGrades() {
+    try {
+      grades = await getAdminGrades();
+    } catch (e) {
+      console.error('등급 목록 로드 실패:', e);
+    }
+  }
 
   async function loadUsers() {
     loading = true;
@@ -138,6 +152,46 @@
   function getRoleBadgeClass(role: string): string {
     return role === 'ADMIN' ? 'role-admin' : 'role-user';
   }
+
+  function getGradeBadgeClass(grade: string): string {
+    return `grade-${grade.toLowerCase()}`;
+  }
+
+  function openGradeModal(user: AdminUserListItem) {
+    gradeTarget = user;
+    selectedGrade = user.grade;
+    showGradeModal = true;
+  }
+
+  function closeGradeModal() {
+    showGradeModal = false;
+    gradeTarget = null;
+    selectedGrade = null;
+  }
+
+  async function handleGradeChange() {
+    if (!gradeTarget || !selectedGrade || actionLoading) return;
+    if (selectedGrade === gradeTarget.grade) {
+      closeGradeModal();
+      return;
+    }
+
+    actionLoading = gradeTarget.id;
+    try {
+      await updateUserGrade(gradeTarget.id, selectedGrade);
+      const gradeInfo = grades.find(g => g.grade === selectedGrade);
+      users = users.map(u =>
+        u.id === gradeTarget!.id
+          ? { ...u, grade: selectedGrade!, gradeDisplayName: gradeInfo?.displayName ?? selectedGrade!, gradeLevel: gradeInfo?.level ?? 1 }
+          : u
+      );
+      closeGradeModal();
+    } catch (e: any) {
+      alert(e?.message ?? '등급 변경에 실패했습니다');
+    } finally {
+      actionLoading = null;
+    }
+  }
 </script>
 
 <div class="admin-page">
@@ -186,6 +240,9 @@
             <div class="user-info">
               <span class="user-name">{user.username}</span>
               <span class="role-badge {getRoleBadgeClass(user.role)}">{user.role}</span>
+              <button class="grade-badge {getGradeBadgeClass(user.grade)}" on:click={() => openGradeModal(user)}>
+                {user.gradeDisplayName}
+              </button>
             </div>
             <div class="user-details">
               <span>{user.gender}</span>
@@ -257,6 +314,40 @@
           disabled={actionLoading !== null}
         >
           {actionLoading ? '삭제 중...' : '삭제'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- 등급 변경 모달 -->
+{#if showGradeModal && gradeTarget}
+  <div class="modal-overlay" on:click={closeGradeModal}>
+    <div class="modal" on:click|stopPropagation>
+      <h3>회원 등급 변경</h3>
+      <p><strong>{gradeTarget.username}</strong>님의 등급을 변경합니다.</p>
+      <div class="grade-select">
+        {#each grades as grade}
+          <label class="grade-option {getGradeBadgeClass(grade.grade)}" class:selected={selectedGrade === grade.grade}>
+            <input
+              type="radio"
+              name="grade"
+              value={grade.grade}
+              bind:group={selectedGrade}
+            />
+            <span class="grade-name">{grade.displayName}</span>
+            <span class="grade-desc">{grade.description}</span>
+          </label>
+        {/each}
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" on:click={closeGradeModal}>취소</button>
+        <button
+          class="btn-confirm"
+          on:click={handleGradeChange}
+          disabled={actionLoading !== null || selectedGrade === gradeTarget.grade}
+        >
+          {actionLoading ? '변경 중...' : '변경'}
         </button>
       </div>
     </div>
@@ -611,4 +702,109 @@
   .btn-confirm-delete:disabled {
     opacity: 0.7;
   }
+
+  .btn-confirm {
+    flex: 1;
+    padding: var(--space-2);
+    font-size: 14px;
+    font-weight: 500;
+    background: var(--accent);
+    color: white;
+    border-radius: var(--radius);
+  }
+
+  .btn-confirm:disabled {
+    opacity: 0.5;
+  }
+
+  /* 등급 배지 */
+  .grade-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+
+  .grade-badge:hover {
+    opacity: 0.8;
+  }
+
+  .grade-badge.grade-bronze {
+    background: rgba(205, 127, 50, 0.2);
+    color: #cd7f32;
+  }
+
+  .grade-badge.grade-silver {
+    background: rgba(192, 192, 192, 0.2);
+    color: #808080;
+  }
+
+  .grade-badge.grade-gold {
+    background: rgba(255, 215, 0, 0.2);
+    color: #b8860b;
+  }
+
+  .grade-badge.grade-platinum {
+    background: rgba(229, 228, 226, 0.3);
+    color: #666;
+  }
+
+  .grade-badge.grade-diamond {
+    background: rgba(185, 242, 255, 0.3);
+    color: #00bcd4;
+  }
+
+  /* 등급 선택 */
+  .grade-select {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-4) 0;
+  }
+
+  .grade-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.15s;
+  }
+
+  .grade-option:hover {
+    border-color: var(--border-light);
+  }
+
+  .grade-option.selected {
+    border-color: var(--accent);
+    background: var(--card-hover);
+  }
+
+  .grade-option input {
+    display: none;
+  }
+
+  .grade-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-main);
+  }
+
+  .grade-desc {
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-left: auto;
+  }
+
+  .grade-option.grade-bronze .grade-name { color: #cd7f32; }
+  .grade-option.grade-silver .grade-name { color: #808080; }
+  .grade-option.grade-gold .grade-name { color: #b8860b; }
+  .grade-option.grade-platinum .grade-name { color: #666; }
+  .grade-option.grade-diamond .grade-name { color: #00bcd4; }
 </style>

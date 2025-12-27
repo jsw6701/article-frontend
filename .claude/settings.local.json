@@ -4,7 +4,8 @@
       "Bash(cmd /c \"dir C:\\front\")",
       "Bash(findstr:*)",
       "Bash(powershell:*)",
-      "Bash(./gradlew compileKotlin:*)"
+      "Bash(./gradlew compileKotlin:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

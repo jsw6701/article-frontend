@@ -236,6 +236,24 @@ export interface AgeGroupStats {
   count: number;
 }
 
+// ========== Grade Types ==========
+
+export type UserGrade = "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
+
+export interface GradeInfo {
+  grade: UserGrade;
+  displayName: string;
+  level: number;
+  description: string;
+}
+
+export interface GradeStats {
+  grade: string;
+  displayName: string;
+  level: number;
+  count: number;
+}
+
 export interface AdminUserListItem {
   id: number;
   username: string;
@@ -243,6 +261,9 @@ export interface AdminUserListItem {
   gender: string;
   ageGroup: string;
   role: string;
+  grade: UserGrade;
+  gradeDisplayName: string;
+  gradeLevel: number;
   emailVerified: boolean;
   createdAt: string;
 }

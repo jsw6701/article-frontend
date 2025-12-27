@@ -25,7 +25,10 @@ import type {
   GenderStats,
   AgeGroupStats,
   AdminUserListResponse,
-  UserRole
+  UserRole,
+  UserGrade,
+  GradeInfo,
+  GradeStats
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -261,5 +264,23 @@ export function updateUserRole(userId: number, role: UserRole) {
 export function deleteUser(userId: number) {
   return http<{ success: boolean; message: string }>(`/api/admin/users/${userId}`, {
     method: "DELETE",
+  }, true);
+}
+
+// ========== Grade APIs ==========
+
+export function getAdminGrades() {
+  return http<GradeInfo[]>("/api/admin/grades", undefined, true);
+}
+
+export function getAdminGradeStats() {
+  return http<GradeStats[]>("/api/admin/stats/grades", undefined, true);
+}
+
+export function updateUserGrade(userId: number, grade: UserGrade) {
+  return http<{ success: boolean; message: string }>(`/api/admin/users/${userId}/grade`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ grade }),
   }, true);
 }

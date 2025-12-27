@@ -2,8 +2,8 @@
   import { base } from '$app/paths';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import type { DashboardSummary, DailySignupStats, DailyViewStats, GenderStats, AgeGroupStats } from '$lib/types';
-  import { getAdminDashboard, getAdminSignupStats, getAdminViewStats, getAdminGenderStats, getAdminAgeGroupStats } from '$lib/api';
+  import type { DashboardSummary, DailySignupStats, DailyViewStats, GenderStats, AgeGroupStats, GradeStats } from '$lib/types';
+  import { getAdminDashboard, getAdminSignupStats, getAdminViewStats, getAdminGenderStats, getAdminAgeGroupStats, getAdminGradeStats } from '$lib/api';
   import { isLoggedIn, isAdmin } from '$lib/stores/auth';
 
   let summary: DashboardSummary | null = null;
@@ -11,6 +11,7 @@
   let viewStats: DailyViewStats[] = [];
   let genderStats: GenderStats | null = null;
   let ageGroupStats: AgeGroupStats[] = [];
+  let gradeStats: GradeStats[] = [];
   let loading = true;
   let error: string | null = null;
 
@@ -39,18 +40,20 @@
     loading = true;
     error = null;
     try {
-      const [summaryRes, signupRes, viewRes, genderRes, ageRes] = await Promise.all([
+      const [summaryRes, signupRes, viewRes, genderRes, ageRes, gradeRes] = await Promise.all([
         getAdminDashboard(),
         getAdminSignupStats(statDays),
         getAdminViewStats(statDays),
         getAdminGenderStats(),
-        getAdminAgeGroupStats()
+        getAdminAgeGroupStats(),
+        getAdminGradeStats()
       ]);
       summary = summaryRes;
       signupStats = signupRes;
       viewStats = viewRes;
       genderStats = genderRes;
       ageGroupStats = ageRes;
+      gradeStats = gradeRes;
     } catch (e: any) {
       error = e?.message ?? '데이터를 불러오는데 실패했습니다';
     } finally {
@@ -206,6 +209,25 @@
                   <div
                     class="dist-bar age"
                     style="width: {getBarWidth(stat.count, getMaxCount(ageGroupStats))}%"
+                  ></div>
+                </div>
+                <span class="dist-value">{formatNumber(stat.count)}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <!-- 회원 등급 분포 -->
+        <div class="dist-card">
+          <h3>회원 등급 분포</h3>
+          <div class="dist-items">
+            {#each gradeStats as stat}
+              <div class="dist-item">
+                <span class="dist-label">{stat.displayName}</span>
+                <div class="dist-bar-wrapper">
+                  <div
+                    class="dist-bar grade grade-{stat.grade.toLowerCase()}"
+                    style="width: {getBarWidth(stat.count, getMaxCount(gradeStats))}%"
                   ></div>
                 </div>
                 <span class="dist-value">{formatNumber(stat.count)}</span>
@@ -485,6 +507,27 @@
 
   .dist-bar.age {
     background: var(--accent);
+  }
+
+  /* 등급별 색상 */
+  .dist-bar.grade-bronze {
+    background: #cd7f32;
+  }
+
+  .dist-bar.grade-silver {
+    background: #c0c0c0;
+  }
+
+  .dist-bar.grade-gold {
+    background: #ffd700;
+  }
+
+  .dist-bar.grade-platinum {
+    background: #e5e4e2;
+  }
+
+  .dist-bar.grade-diamond {
+    background: #b9f2ff;
   }
 
   .dist-value {
