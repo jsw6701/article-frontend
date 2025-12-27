@@ -35,3 +35,33 @@ export function formatViewCount(count: number | undefined): string {
   if (count >= 1000) return `${(count / 1000).toFixed(1)}천`;
   return count.toString();
 }
+
+// ========== Lifecycle Labels ==========
+import type { IssueLifecycleStage, IssueLifecycle } from '$lib/types';
+
+export const lifecycleLabels: Record<IssueLifecycleStage, { emoji: string; label: string; description: string }> = {
+  EMERGING: { emoji: "🔥", label: "발생", description: "새롭게 떠오르는 이슈" },
+  SPREADING: { emoji: "📈", label: "확산", description: "관심이 빠르게 증가 중" },
+  PEAK: { emoji: "⚠️", label: "정점", description: "관심이 최고조에 달함" },
+  DECLINING: { emoji: "📉", label: "소강", description: "관심이 줄어드는 중" },
+  DORMANT: { emoji: "💤", label: "종료", description: "이슈가 마무리됨" }
+};
+
+export function getLifecycleInfo(stage: IssueLifecycleStage) {
+  return lifecycleLabels[stage] ?? { emoji: "❓", label: stage, description: "" };
+}
+
+export function formatLifecycleChange(lifecycle: IssueLifecycle): string {
+  const { stage, changePercent } = lifecycle;
+
+  if (stage === "EMERGING") {
+    return "신규 이슈";
+  }
+
+  if (stage === "PEAK") {
+    return "정점 도달";
+  }
+
+  const sign = changePercent >= 0 ? "+" : "";
+  return `정점 대비 ${sign}${changePercent}%`;
+}

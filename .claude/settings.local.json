@@ -1,14 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm i:*)",
-      "Bash(npx cap init:*)",
-      "Bash(npx cap add android)",
-      "Bash(npm run build:app:*)",
-      "Bash(npx cap sync:*)",
-      "Bash(npx cap open android)",
-      "Bash(tree:*)",
-      "Bash(cat:*)"
+      "Bash(cmd /c \"dir C:\\front\")",
+      "Bash(findstr:*)",
+      "Bash(powershell:*)",
+      "Bash(./gradlew compileKotlin:*)"
     ],
     "deny": [],
     "ask": []

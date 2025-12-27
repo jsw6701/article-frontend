@@ -5,6 +5,7 @@
   import { listCards, getTrending, getPopularCards } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
   import { isLoggedIn } from "$lib/stores/auth";
+  import LifecycleBadge from "$lib/components/LifecycleBadge.svelte";
 
   let cards: CardListItem[] = [];
   let trends: TrendingItem[] = [];
@@ -97,7 +98,12 @@
               <a href="{base}/cards/{trend.issueId}" class="rank-item">
                 <span class="rank-num" class:top={i < 3}>{i + 1}</span>
                 <div class="rank-content">
-                  <span class="rank-title">{getDisplayTitle(trend)}</span>
+                  <div class="rank-title-row">
+                    <span class="rank-title">{getDisplayTitle(trend)}</span>
+                    {#if trend.lifecycle}
+                      <LifecycleBadge lifecycle={trend.lifecycle} />
+                    {/if}
+                  </div>
                   {#if trend.signalSummary}
                     <span class="rank-sub">{trend.signalSummary}</span>
                   {/if}
@@ -118,7 +124,12 @@
               <a href="{base}/cards/{item.card.issueId}" class="rank-item">
                 <span class="rank-num" class:top={i < 3}>{i + 1}</span>
                 <div class="rank-content">
-                  <span class="rank-title">{getPopularDisplayTitle(item)}</span>
+                  <div class="rank-title-row">
+                    <span class="rank-title">{getPopularDisplayTitle(item)}</span>
+                    {#if item.card.lifecycle}
+                      <LifecycleBadge lifecycle={item.card.lifecycle} />
+                    {/if}
+                  </div>
                   {#if item.card.signalSummary}
                     <span class="rank-sub">{item.card.signalSummary}</span>
                   {/if}
@@ -148,7 +159,12 @@
           {#each cards as card}
             <a href="{base}/cards/{card.issueId}" class="card">
               <div class="card-top">
-                <span class="card-cat">{getGroupLabel(card.issueGroup)}</span>
+                <div class="card-meta">
+                  <span class="card-cat">{getGroupLabel(card.issueGroup)}</span>
+                  {#if card.lifecycle}
+                    <LifecycleBadge lifecycle={card.lifecycle} />
+                  {/if}
+                </div>
                 <span class="card-time">{getTimeAgo(card.issueLastPublishedAt)}</span>
               </div>
               <h3 class="card-title">{getDisplayTitle(card)}</h3>
@@ -331,8 +347,14 @@
     min-width: 0;
   }
 
+  .rank-title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
   .rank-title {
-    display: block;
     font-size: 14px;
     font-weight: 500;
     color: var(--text-main);
@@ -392,6 +414,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-2);
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
   }
 
   .card-cat {

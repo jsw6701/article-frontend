@@ -1,6 +1,18 @@
 export type IssueGroup = "RATE" | "FX" | "STOCK" | "REALESTATE" | "MACRO" | "POLICY";
 export type CardStatus = "ACTIVE" | "STALE" | "FAILED";
 
+// ========== Issue Lifecycle Types ==========
+export type IssueLifecycleStage = "EMERGING" | "SPREADING" | "PEAK" | "DECLINING" | "DORMANT";
+
+export interface IssueLifecycle {
+  stage: IssueLifecycleStage;
+  changePercent: number;        // 정점 대비 변화율 (%)
+  peakArticleCount: number;     // 정점 시점 기사 수
+  currentArticleCount: number;  // 현재 기사 수 (최근 24시간)
+  peakDate: string | null;      // 정점 도달 일시 (ISO)
+  stageChangedAt: string;       // 현재 단계 진입 일시 (ISO)
+}
+
 export interface CardListItem {
   issueId: number;
   issueFingerprint: string;
@@ -16,6 +28,7 @@ export interface CardListItem {
   articleCount: number;
   publisherCount: number;
   viewCount?: number;              // 조회수
+  lifecycle?: IssueLifecycle | null; // 이슈 생애주기
 }
 
 export interface ArticleSummary {
@@ -41,6 +54,7 @@ export interface CardDetail {
   issuePublisherCount: number;
   articles: ArticleSummary[];
   viewCount?: number;              // 조회수
+  lifecycle?: IssueLifecycle | null; // 이슈 생애주기
 }
 
 export interface PageResponse<T> {
@@ -62,6 +76,7 @@ export interface TrendingItem {
   score: number;
   conclusion: string | null;
   viewCount?: number;              // 조회수
+  lifecycle?: IssueLifecycle | null; // 이슈 생애주기
 }
 
 export interface TrendingResponse {
@@ -164,6 +179,7 @@ export interface BookmarkItem {
   conclusion?: string | null;
   bookmarkedAt: string;
   viewCount?: number;              // 조회수
+  lifecycle?: IssueLifecycle | null; // 이슈 생애주기
 }
 
 // ========== Popular Types ==========

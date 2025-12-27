@@ -3,8 +3,9 @@
   import { onMount } from "svelte";
   import { getCard, getBookmarkStatus, addBookmark, removeBookmark } from "$lib/api";
   import type { CardDetail } from "$lib/types";
-  import { getGroupLabel, formatRelativeTime, formatViewCount } from "$lib/utils/labels";
+  import { getGroupLabel, formatRelativeTime, formatViewCount, getLifecycleInfo, formatLifecycleChange } from "$lib/utils/labels";
   import { isLoggedIn } from "$lib/stores/auth";
+  import LifecycleBadge from "$lib/components/LifecycleBadge.svelte";
 
   export let params: { issueId: string };
 
@@ -85,7 +86,12 @@
     <!-- 메인 헤더 -->
     <header class="header">
       <div class="header-top">
-        <span class="cat">{getGroupLabel(detail.issueGroup)}</span>
+        <div class="header-left">
+          <span class="cat">{getGroupLabel(detail.issueGroup)}</span>
+          {#if detail.lifecycle}
+            <LifecycleBadge lifecycle={detail.lifecycle} size="medium" />
+          {/if}
+        </div>
         {#if $isLoggedIn}
           <button
             class="bookmark-btn"
@@ -116,6 +122,44 @@
         {/if}
       </div>
     </header>
+
+    <!-- 이슈 생애주기 -->
+    {#if detail.lifecycle}
+      {@const info = getLifecycleInfo(detail.lifecycle.stage)}
+      <section class="section lifecycle-section" data-stage={detail.lifecycle.stage}>
+        <h2>이슈 생애주기</h2>
+        <div class="lifecycle-content">
+          <div class="lifecycle-stage">
+            <span class="lifecycle-emoji">{info.emoji}</span>
+            <div class="lifecycle-info">
+              <span class="lifecycle-label">{info.label}</span>
+              <span class="lifecycle-desc">{info.description}</span>
+            </div>
+          </div>
+          <div class="lifecycle-stats">
+            <div class="lifecycle-stat">
+              <span class="stat-value">{formatLifecycleChange(detail.lifecycle)}</span>
+            </div>
+            {#if detail.lifecycle.peakDate}
+              <div class="lifecycle-stat">
+                <span class="stat-label">정점 도달</span>
+                <span class="stat-value">{formatRelativeTime(detail.lifecycle.peakDate)}</span>
+              </div>
+            {/if}
+            <div class="lifecycle-stat">
+              <span class="stat-label">현재 기사 수</span>
+              <span class="stat-value">{detail.lifecycle.currentArticleCount}개 (24시간)</span>
+            </div>
+            {#if detail.lifecycle.peakArticleCount > 0}
+              <div class="lifecycle-stat">
+                <span class="stat-label">정점 기사 수</span>
+                <span class="stat-value">{detail.lifecycle.peakArticleCount}개</span>
+              </div>
+            {/if}
+          </div>
+        </div>
+      </section>
+    {/if}
 
     <!-- 핵심 결론 -->
     <section class="section highlight">
@@ -249,6 +293,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
   }
 
   .cat {
@@ -462,5 +512,97 @@
   .art-meta {
     font-size: 12px;
     color: var(--text-sub);
+  }
+
+  /* 이슈 생애주기 섹션 */
+  .lifecycle-section {
+    border-color: var(--border-light);
+  }
+
+  .lifecycle-section[data-stage="EMERGING"] {
+    border-color: rgba(251, 146, 60, 0.5);
+    background: rgba(251, 146, 60, 0.05);
+  }
+
+  .lifecycle-section[data-stage="SPREADING"] {
+    border-color: rgba(74, 222, 128, 0.5);
+    background: rgba(74, 222, 128, 0.05);
+  }
+
+  .lifecycle-section[data-stage="PEAK"] {
+    border-color: rgba(251, 191, 36, 0.5);
+    background: rgba(251, 191, 36, 0.05);
+  }
+
+  .lifecycle-section[data-stage="DECLINING"] {
+    border-color: rgba(96, 165, 250, 0.5);
+    background: rgba(96, 165, 250, 0.05);
+  }
+
+  .lifecycle-section[data-stage="DORMANT"] {
+    border-color: rgba(113, 113, 122, 0.5);
+    background: rgba(113, 113, 122, 0.05);
+  }
+
+  .lifecycle-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .lifecycle-stage {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .lifecycle-emoji {
+    font-size: 32px;
+  }
+
+  .lifecycle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .lifecycle-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .lifecycle-desc {
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  .lifecycle-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .lifecycle-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--card-hover);
+    border-radius: var(--radius);
+    min-width: 100px;
+  }
+
+  .lifecycle-stat .stat-label {
+    font-size: 11px;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .lifecycle-stat .stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
   }
 </style>

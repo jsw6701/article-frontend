@@ -5,6 +5,7 @@
   import { listCards } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
   import { isLoggedIn } from "$lib/stores/auth";
+  import LifecycleBadge from "$lib/components/LifecycleBadge.svelte";
 
   let items: CardListItem[] = [];
   let loading = true;
@@ -114,7 +115,12 @@
       {#each items as item}
         <a href="{base}/cards/{item.issueId}" class="item">
           <div class="item-header">
-            <span class="item-cat">{getGroupLabel(item.issueGroup)}</span>
+            <div class="item-meta">
+              <span class="item-cat">{getGroupLabel(item.issueGroup)}</span>
+              {#if item.lifecycle}
+                <LifecycleBadge lifecycle={item.lifecycle} showChange={true} />
+              {/if}
+            </div>
             <span class="item-time">{getTimeAgo(item.issueLastPublishedAt)}</span>
           </div>
           <h2 class="item-title">{getDisplayTitle(item)}</h2>
@@ -228,6 +234,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-2);
+  }
+
+  .item-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
   }
 
   .item-cat {

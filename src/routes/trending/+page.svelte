@@ -5,6 +5,7 @@
   import { getTrending, getPopularCards } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
   import { isLoggedIn } from "$lib/stores/auth";
+  import LifecycleBadge from "$lib/components/LifecycleBadge.svelte";
 
   let trends: TrendingItem[] = [];
   let popular: PopularCard[] = [];
@@ -89,7 +90,12 @@
             <a href="{base}/cards/{item.issueId}" class="item">
               <div class="rank" class:top={i < 3}>{i + 1}</div>
               <div class="content">
-                <span class="cat">{getGroupLabel(item.issueGroup)}</span>
+                <div class="content-header">
+                  <span class="cat">{getGroupLabel(item.issueGroup)}</span>
+                  {#if item.lifecycle}
+                    <LifecycleBadge lifecycle={item.lifecycle} showChange={true} />
+                  {/if}
+                </div>
                 <h2 class="title">{getDisplayTitle(item)}</h2>
                 {#if item.signalSummary}
                   <p class="summary">{item.signalSummary}</p>
@@ -119,7 +125,12 @@
             <a href="{base}/cards/{item.card.issueId}" class="item">
               <div class="rank" class:top={i < 3}>{i + 1}</div>
               <div class="content">
-                <span class="cat">{getGroupLabel(item.card.issueGroup)}</span>
+                <div class="content-header">
+                  <span class="cat">{getGroupLabel(item.card.issueGroup)}</span>
+                  {#if item.card.lifecycle}
+                    <LifecycleBadge lifecycle={item.card.lifecycle} showChange={true} />
+                  {/if}
+                </div>
                 <h2 class="title">{getPopularDisplayTitle(item)}</h2>
                 {#if item.card.signalSummary}
                   <p class="summary">{item.card.signalSummary}</p>
@@ -275,6 +286,12 @@
   .content {
     flex: 1;
     min-width: 0;
+  }
+
+  .content-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
   }
 
   .cat {
