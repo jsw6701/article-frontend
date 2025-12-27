@@ -31,10 +31,11 @@ function createAuthStore() {
     async login(username: string, password: string): Promise<{ success: boolean; message: string }> {
       try {
         const res = await apiLogin({ username, password });
-        if (res.success && res.accessToken && res.refreshToken && res.userId && res.username) {
+        if (res.success && res.accessToken && res.refreshToken && res.userId && res.username && res.role) {
           const user: AuthUser = {
             userId: res.userId,
             username: res.username,
+            role: res.role,
             accessToken: res.accessToken,
             refreshToken: res.refreshToken,
           };
@@ -102,3 +103,4 @@ function createAuthStore() {
 export const auth = createAuthStore();
 export const isLoggedIn = derived(auth, ($auth) => $auth !== null);
 export const currentUser = derived(auth, ($auth) => $auth);
+export const isAdmin = derived(auth, ($auth) => $auth?.role === "ADMIN");

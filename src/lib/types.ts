@@ -74,6 +74,7 @@ export interface TrendingResponse {
 
 export type Gender = "MALE" | "FEMALE";
 export type AgeGroup = "TEENS" | "TWENTIES" | "THIRTIES" | "FORTIES" | "FIFTIES" | "SIXTIES_PLUS";
+export type UserRole = "USER" | "ADMIN";
 
 export interface SignUpRequest {
   username: string;
@@ -123,6 +124,7 @@ export interface LoginResponse {
   refreshToken: string | null;
   userId: number | null;
   username: string | null;
+  role: UserRole | null;
   message: string | null;
 }
 
@@ -146,6 +148,7 @@ export interface LogoutResponse {
 export interface AuthUser {
   userId: number;
   username: string;
+  role: UserRole;
   accessToken: string;
   refreshToken: string;
 }
@@ -183,4 +186,55 @@ export interface BookmarkStatusResponse {
 export interface BookmarkListResponse {
   items: BookmarkItem[];
   count: number;
+}
+
+// ========== Admin Types ==========
+
+export interface DashboardSummary {
+  totalUsers: number;
+  todaySignups: number;
+  totalViews: number;
+  todayViews: number;
+  totalCards: number;
+  activeCards: number;
+}
+
+export interface DailySignupStats {
+  date: string;
+  count: number;
+}
+
+export interface DailyViewStats {
+  date: string;
+  count: number;
+}
+
+export interface GenderStats {
+  male: number;
+  female: number;
+}
+
+export interface AgeGroupStats {
+  ageGroup: string;
+  displayName: string;
+  count: number;
+}
+
+export interface AdminUserListItem {
+  id: number;
+  username: string;
+  email: string;
+  gender: string;
+  ageGroup: string;
+  role: string;
+  emailVerified: boolean;
+  createdAt: string;
+}
+
+export interface AdminUserListResponse {
+  items: AdminUserListItem[];
+  total: number;
+  page: number;
+  size: number;
+  totalPages: number;
 }

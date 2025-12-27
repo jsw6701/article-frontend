@@ -18,7 +18,14 @@ import type {
   SendEmailVerificationRequest,
   SendEmailVerificationResponse,
   VerifyEmailRequest,
-  VerifyEmailResponse
+  VerifyEmailResponse,
+  DashboardSummary,
+  DailySignupStats,
+  DailyViewStats,
+  GenderStats,
+  AgeGroupStats,
+  AdminUserListResponse,
+  UserRole
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -207,4 +214,52 @@ export function getBookmarkStatus(issueId: number) {
 
 export function getMyBookmarks() {
   return http<BookmarkListResponse>("/api/bookmarks", undefined, true);
+}
+
+// ========== Admin API ==========
+
+export function getAdminDashboard() {
+  return http<DashboardSummary>("/api/admin/dashboard", undefined, true);
+}
+
+export function getAdminSignupStats(days = 30) {
+  return http<DailySignupStats[]>(`/api/admin/stats/signups${qs({ days })}`, undefined, true);
+}
+
+export function getAdminViewStats(days = 30) {
+  return http<DailyViewStats[]>(`/api/admin/stats/views${qs({ days })}`, undefined, true);
+}
+
+export function getAdminGenderStats() {
+  return http<GenderStats>("/api/admin/stats/gender", undefined, true);
+}
+
+export function getAdminAgeGroupStats() {
+  return http<AgeGroupStats[]>("/api/admin/stats/age-groups", undefined, true);
+}
+
+export function getAdminUsers(opts: { page?: number; size?: number; search?: string } = {}) {
+  return http<AdminUserListResponse>(
+    `/api/admin/users${qs({
+      page: opts.page ?? 1,
+      size: opts.size ?? 20,
+      search: opts.search,
+    })}`,
+    undefined,
+    true
+  );
+}
+
+export function updateUserRole(userId: number, role: UserRole) {
+  return http<{ success: boolean; message: string }>(`/api/admin/users/${userId}/role`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  }, true);
+}
+
+export function deleteUser(userId: number) {
+  return http<{ success: boolean; message: string }>(`/api/admin/users/${userId}`, {
+    method: "DELETE",
+  }, true);
 }

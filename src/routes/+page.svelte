@@ -20,7 +20,7 @@
       if (loggedIn) {
         try {
           const [cardsRes, trendingRes, popularRes] = await Promise.all([
-            listCards({ limit: 6, offset: 0 }),
+            listCards({ limit: 3, offset: 0 }),
             getTrending({ limit: 5 }),
             getPopularCards({ limit: 5 })
           ]);
@@ -142,7 +142,7 @@
       <section class="section">
         <div class="section-head">
           <h2>최신 브리핑</h2>
-          <a href="{base}/today">더보기</a>
+          <a href="{base}/today">전체 보기</a>
         </div>
         <div class="card-list">
           {#each cards as card}
