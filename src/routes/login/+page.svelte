@@ -2,7 +2,9 @@
   import { base } from '$app/paths';
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import { auth, isLoggedIn } from "$lib/stores/auth";
+  import { settings, currentStartPage } from "$lib/stores/settings";
   import ShiftLogo from "$lib/components/ShiftLogo.svelte";
 
   let username = "";
@@ -10,13 +12,28 @@
   let error = "";
   let loading = false;
 
-  // 이미 로그인된 경우 메인으로 리다이렉트
+  // 시작 페이지 경로 매핑
+  const startPagePaths: Record<string, string> = {
+    home: '/',
+    feed: '/today',
+    trending: '/trending'
+  };
+
+  // 이미 로그인된 경우 시작 페이지로 리다이렉트
   onMount(() => {
     auth.init();
   });
 
   $: if ($isLoggedIn) {
-    goto(`${base}/`);
+    navigateToStartPage();
+  }
+
+  async function navigateToStartPage() {
+    // 서버에서 설정을 불러온 후 시작 페이지로 이동
+    await settings.init();
+    const startPage = get(currentStartPage);
+    const targetPath = startPagePaths[startPage] || '/';
+    goto(`${base}${targetPath}`);
   }
 
   async function handleSubmit() {
@@ -36,7 +53,8 @@
     loading = false;
 
     if (result.success) {
-      goto(`${base}/`);
+      // 로그인 성공 시 설정 불러오고 시작 페이지로 이동
+      await navigateToStartPage();
     } else {
       error = result.message;
     }

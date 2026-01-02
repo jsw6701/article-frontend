@@ -16,16 +16,17 @@ function getStoredUser(): AuthUser | null {
 }
 
 function createAuthStore() {
-  const { subscribe, set, update } = writable<AuthUser | null>(null);
+  // 초기값을 localStorage에서 바로 가져옴 (SSR에서는 null)
+  const initialUser = typeof window !== "undefined" ? getStoredUser() : null;
+  const { subscribe, set, update } = writable<AuthUser | null>(initialUser);
 
   return {
     subscribe,
 
     init() {
+      // 클라이언트에서 다시 한번 확인
       const stored = getStoredUser();
-      if (stored) {
-        set(stored);
-      }
+      set(stored);
     },
 
     async login(username: string, password: string): Promise<{ success: boolean; message: string }> {
@@ -64,6 +65,7 @@ function createAuthStore() {
 
     clear() {
       set(null);
+      localStorage.removeItem(STORAGE_KEY);
     },
 
     async refresh(): Promise<boolean> {

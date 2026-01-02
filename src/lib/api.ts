@@ -28,10 +28,36 @@ import type {
   UserRole,
   UserGrade,
   GradeInfo,
-  GradeStats
+  GradeStats,
+  MyProfile,
+  MyProfileResponse,
+  DeleteAccountResponse
 } from "./types";
+import { Capacitor } from "@capacitor/core";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+/**
+ * API Base URL을 동적으로 결정
+ * 1. 환경변수 VITE_API_BASE가 설정되어 있으면 사용
+ * 2. Capacitor 네이티브 앱이면 프로덕션 API URL 사용
+ * 3. 웹 브라우저면 상대 경로 사용 (같은 도메인)
+ */
+function getApiBase(): string {
+  // 1. 환경변수가 설정되어 있으면 우선 사용
+  const envBase = import.meta.env.VITE_API_BASE;
+  if (envBase) {
+    return envBase;
+  }
+
+  // 2. Capacitor 네이티브 앱 (Android/iOS)인 경우
+  if (Capacitor.isNativePlatform()) {
+    return import.meta.env.VITE_NATIVE_API_BASE ?? "https://shift-dev.kr";
+  }
+
+  // 3. 웹 브라우저 - 같은 도메인에서 서빙되므로 상대 경로 사용
+  return "";
+}
+
+const API_BASE = getApiBase();
 const AUTH_STORAGE_KEY = "auth_user";
 
 function getAccessToken(): string | null {
@@ -197,6 +223,31 @@ export function logout(userId: number) {
   });
 }
 
+// ========== Settings API ==========
+
+export interface UserSettingsData {
+  theme: 'light' | 'dark';
+  fontSize: 'small' | 'medium' | 'large';
+  startPage: 'home' | 'feed' | 'trending';
+}
+
+export async function getUserSettings(): Promise<UserSettingsData | null> {
+  try {
+    const res = await http<{ success: boolean; data: UserSettingsData | null }>("/api/users/settings", undefined, true);
+    return res.data;
+  } catch {
+    return null;
+  }
+}
+
+export function updateUserSettings(settings: UserSettingsData) {
+  return http<{ success: boolean; message: string }>("/api/users/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  }, true);
+}
+
 // ========== Bookmark API ==========
 
 export function addBookmark(issueId: number) {
@@ -282,5 +333,23 @@ export function updateUserGrade(userId: number, grade: UserGrade) {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ grade }),
+  }, true);
+}
+
+// ========== User Profile API ==========
+
+export async function getMyProfile(): Promise<MyProfile> {
+  const response = await http<MyProfileResponse>("/api/users/me", undefined, true);
+  if (!response.success || !response.data) {
+    throw new Error(response.message || "프로필을 불러올 수 없습니다.");
+  }
+  return response.data;
+}
+
+export function deleteMyAccount(password: string) {
+  return http<DeleteAccountResponse>("/api/users/me", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
   }, true);
 }

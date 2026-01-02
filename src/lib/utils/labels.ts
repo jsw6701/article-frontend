@@ -11,6 +11,30 @@ export function getGroupLabel(group: string): string {
   return groupLabels[group] ?? group;
 }
 
+// ========== Gender & AgeGroup Labels ==========
+
+export const genderLabels: Record<string, string> = {
+  MALE: "남성",
+  FEMALE: "여성"
+};
+
+export const ageGroupLabels: Record<string, string> = {
+  TEENS: "10대",
+  TWENTIES: "20대",
+  THIRTIES: "30대",
+  FORTIES: "40대",
+  FIFTIES: "50대",
+  SIXTIES_PLUS: "60대 이상"
+};
+
+export function getGenderLabel(gender: string): string {
+  return genderLabels[gender] ?? gender;
+}
+
+export function getAgeGroupLabel(ageGroup: string): string {
+  return ageGroupLabels[ageGroup] ?? ageGroup;
+}
+
 export function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();

@@ -5,7 +5,15 @@
       "Bash(findstr:*)",
       "Bash(powershell:*)",
       "Bash(./gradlew compileKotlin:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(dir /b \"C:\\front\\news-briefing-frontend\\android\")",
+      "Bash(npm run build:static:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(dir /b \"C:\\front\\news-briefing-frontend\\android\\app\\src\\main\\assets\\public\")",
+      "Bash(npm run build:android:*)",
+      "Bash(dir /b \"C:\\front\")"
     ],
     "deny": [],
     "ask": []

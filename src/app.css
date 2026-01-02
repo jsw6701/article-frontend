@@ -49,6 +49,7 @@
 
   /* 액센트 - 다크 테마용 밝은 톤 */
   --accent: #60a5fa;
+  --accent-rgb: 96, 165, 250;
   --accent-glow: rgba(96, 165, 250, 0.3);
   --accent-green: #4ade80;
   --accent-red: #f87171;
@@ -93,6 +94,7 @@
 
   /* 액센트 - 차분한 톤 */
   --accent: #4a7c59;
+  --accent-rgb: 74, 124, 89;
   --accent-glow: rgba(74, 124, 89, 0.12);
   --accent-green: #5a9a68;
   --accent-red: #c45c4a;
@@ -133,6 +135,27 @@ body {
   color: var(--text-main);
   line-height: 1.6;
   min-height: 100vh;
+}
+
+/* =============================================
+   글꼴 크기 설정
+   - zoom 속성으로 전체 UI 스케일 조절
+   - 대부분의 모던 브라우저 지원 (Chrome, Safari, Edge, Firefox 126+)
+   ============================================= */
+:root {
+  --ui-scale: 1;
+}
+
+:root[data-font-size="small"] {
+  --ui-scale: 0.9;
+}
+
+:root[data-font-size="medium"] {
+  --ui-scale: 1;
+}
+
+:root[data-font-size="large"] {
+  --ui-scale: 1.1;
 }
 
 a {

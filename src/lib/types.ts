@@ -275,3 +275,35 @@ export interface AdminUserListResponse {
   size: number;
   totalPages: number;
 }
+
+// ========== My Profile Types ==========
+
+export interface MyProfile {
+  id: number;
+  username: string;
+  email: string;
+  gender: string;
+  ageGroup: string;
+  role: string;
+  grade: string;
+  gradeDisplayName: string;
+  gradeLevel: number;
+  emailVerified: boolean;
+  createdAt: string;
+  bookmarkCount: number;
+}
+
+export interface MyProfileResponse {
+  success: boolean;
+  data: MyProfile | null;
+  message: string | null;
+}
+
+export interface DeleteAccountRequest {
+  password: string;
+}
+
+export interface DeleteAccountResponse {
+  success: boolean;
+  message: string;
+}
