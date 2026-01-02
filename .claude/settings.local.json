@@ -15,7 +15,8 @@
       "Bash(npm run build:android:*)",
       "Bash(dir /b \"C:\\front\")",
       "WebSearch",
-      "WebFetch(domain:www.learnui.design)"
+      "WebFetch(domain:www.learnui.design)",
+      "WebFetch(domain:www.privacy.go.kr)"
     ],
     "deny": [],
     "ask": []

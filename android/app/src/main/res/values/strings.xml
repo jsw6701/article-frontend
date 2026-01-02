@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Economy Briefing</string>
-    <string name="title_activity_main">Economy Briefing</string>
+    <string name="app_name">Shift: 오늘 시장의 변화 신호</string>
+    <string name="title_activity_main">Shift</string>
     <string name="package_name">com.yourapp.briefing</string>
     <string name="custom_url_scheme">com.yourapp.briefing</string>
 </resources>
