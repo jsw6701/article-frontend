@@ -147,51 +147,50 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-5);
   }
 
   .page-header {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
   }
 
   .back-link {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-sub);
+    color: var(--text-tertiary);
     border-radius: var(--radius);
     transition: all 0.2s var(--ease);
   }
 
   .back-link:hover {
-    color: var(--text-main);
+    color: var(--text-primary);
     background: var(--card);
   }
 
   .back-link svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
   }
 
   .page-header h1 {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
-    color: var(--text-main);
+    color: var(--text-primary);
   }
 
   .policy-content {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
   }
 
   .policy-section {
-    margin-bottom: var(--space-5);
+    margin-bottom: var(--space-6);
   }
 
   .policy-section:last-child {
@@ -199,53 +198,53 @@
   }
 
   .effective-date {
-    font-size: 13px;
-    color: var(--text-sub);
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-tertiary);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--separator);
   }
 
   .policy-section h2 {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
-    color: var(--text-main);
-    margin-bottom: var(--space-2);
+    color: var(--text-primary);
+    margin-bottom: var(--space-3);
   }
 
   .policy-section p {
-    font-size: 14px;
-    color: var(--text-body);
+    font-size: 16px;
+    color: var(--text-secondary);
     line-height: 1.7;
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-3);
   }
 
   .policy-section ul {
-    margin-left: var(--space-3);
-    margin-bottom: var(--space-2);
+    margin-left: var(--space-4);
+    margin-bottom: var(--space-3);
   }
 
   .policy-section li {
-    font-size: 14px;
-    color: var(--text-body);
+    font-size: 16px;
+    color: var(--text-secondary);
     line-height: 1.7;
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--space-2);
     position: relative;
-    padding-left: var(--space-2);
+    padding-left: var(--space-3);
   }
 
   .policy-section li::before {
     content: "•";
     position: absolute;
     left: 0;
-    color: var(--text-sub);
+    color: var(--text-tertiary);
   }
 
   .policy-section li ul {
-    margin-top: var(--space-1);
+    margin-top: var(--space-2);
   }
 
   .policy-section strong {
-    color: var(--text-main);
-    font-weight: 500;
+    color: var(--text-primary);
+    font-weight: 600;
   }
 </style>

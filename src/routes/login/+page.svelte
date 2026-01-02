@@ -61,10 +61,14 @@
   }
 </script>
 
+<svelte:head>
+  <title>로그인 - SHIFT</title>
+</svelte:head>
+
 <div class="page">
-  <header class="page-header">
+  <header class="header">
     <ShiftLogo size="lg" />
-    <p>계정에 로그인하세요</p>
+    <p class="subtitle">계정에 로그인하세요</p>
   </header>
 
   <form class="form" on:submit|preventDefault={handleSubmit}>
@@ -107,97 +111,104 @@
 
 <style>
   .page {
-    max-width: 360px;
+    max-width: 380px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding-top: var(--space-5);
+  }
+
+  .header {
+    text-align: center;
+    padding: var(--space-5) 0;
+  }
+
+  .subtitle {
+    font-size: 17px;
+    color: var(--text-secondary);
+    margin: var(--space-3) 0 0;
+  }
+
+  .form {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
   }
 
-  .page-header {
-    padding: var(--space-4) 0 var(--space-2);
-    text-align: center;
-  }
-
-
-  .page-header p {
-    font-size: 13px;
-    color: var(--text-sub);
-    margin: 0;
-  }
-
-  .form {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-
   .field {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--space-2);
   }
 
   .field label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-left: var(--space-1);
   }
 
   .field input {
-    padding: var(--space-3);
-    font-size: 15px;
-    color: var(--text-main);
-    background: var(--card-hover);
-    border: 1px solid var(--border);
+    padding: var(--space-4);
+    font-size: 17px;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: none;
     border-radius: var(--radius);
-    transition: border-color 0.15s;
+    transition: box-shadow var(--duration-fast) var(--ease);
   }
 
   .field input::placeholder {
-    color: var(--text-sub);
+    color: var(--text-tertiary);
   }
 
   .field input:focus {
     outline: none;
-    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-glow);
   }
 
   .error {
-    font-size: 13px;
-    color: var(--accent-red);
-    padding: var(--space-3);
-    background: rgba(239, 68, 68, 0.1);
+    font-size: 15px;
+    color: var(--system-red);
+    padding: var(--space-4);
+    background: rgba(255, 59, 48, 0.1);
     border-radius: var(--radius);
+    text-align: center;
+    line-height: 1.5;
   }
 
   .submit {
-    padding: var(--space-3);
-    font-size: 15px;
+    padding: var(--space-4);
+    font-size: 17px;
     font-weight: 600;
     color: white;
     background: var(--accent);
     border-radius: var(--radius);
-    transition: opacity 0.15s;
+    transition: opacity var(--duration-fast) var(--ease);
+    margin-top: var(--space-2);
   }
 
   .submit:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
+  }
+
+  .submit:not(:disabled):active {
+    opacity: 0.8;
   }
 
   .footer {
     text-align: center;
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 16px;
+    color: var(--text-secondary);
   }
 
   .footer a {
     color: var(--accent);
-    font-weight: 500;
-    margin-left: var(--space-1);
+    font-weight: 600;
+    margin-left: var(--space-2);
   }
 </style>

@@ -37,10 +37,14 @@
 
 </script>
 
+<svelte:head>
+  <title>저장됨 - SHIFT</title>
+</svelte:head>
+
 <div class="page">
-  <header class="page-header">
-    <h1>북마크</h1>
-    <p>저장한 브리핑</p>
+  <header class="header">
+    <h1 class="title">저장됨</h1>
+    <p class="subtitle">저장한 브리핑</p>
   </header>
 
   {#if loading}
@@ -48,24 +52,29 @@
       <div class="spinner"></div>
     </div>
   {:else if error}
-    <div class="error">
+    <div class="error-box">
       <p>{error}</p>
-      <button on:click={() => location.reload()}>다시 시도</button>
+      <button class="retry-btn" on:click={() => location.reload()}>다시 시도</button>
     </div>
   {:else if items.length === 0}
-    <div class="empty">
+    <div class="empty-box">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z"/>
+        </svg>
+      </div>
       <p>저장한 브리핑이 없습니다</p>
-      <a href="{base}/">브리핑 둘러보기</a>
+      <a href="{base}/" class="browse-btn">브리핑 둘러보기</a>
     </div>
   {:else}
     <div class="list">
       {#each items as item}
-        <div class="item">
+        <div class="list-item">
           <a href="{base}/cards/{item.issueId}" class="item-content">
-            <span class="item-cat">{getGroupLabel(item.issueGroup)}</span>
+            <span class="item-category">{getGroupLabel(item.issueGroup)}</span>
             <h2 class="item-title">{getDisplayTitle(item)}</h2>
             {#if item.signalSummary}
-              <p class="item-signal">{item.signalSummary}</p>
+              <p class="item-highlight">{item.signalSummary}</p>
             {:else if item.conclusion}
               <p class="item-desc">{item.conclusion}</p>
             {/if}
@@ -75,8 +84,8 @@
             on:click={() => handleRemove(item.issueId)}
             aria-label="북마크 삭제"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z"/>
             </svg>
           </button>
         </div>
@@ -89,36 +98,38 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-5);
   }
 
-  .page-header {
-    padding: var(--space-2) 0;
+  .header {
+    padding-top: var(--space-4);
   }
 
-  .page-header h1 {
-    font-size: 24px;
+  .title {
+    font-size: 28px;
     font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 4px;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.02em;
   }
 
-  .page-header p {
-    font-size: 13px;
-    color: var(--text-sub);
-    margin: 0;
+  .subtitle {
+    font-size: 15px;
+    color: var(--text-tertiary);
+    margin: var(--space-2) 0 0;
   }
 
   .loading {
     display: flex;
+    align-items: center;
     justify-content: center;
-    padding: var(--space-6) 0;
+    min-height: 40vh;
   }
 
   .spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--border);
+    border: 2.5px solid var(--separator);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -128,79 +139,122 @@
     to { transform: rotate(360deg); }
   }
 
-  .error, .empty {
+  .error-box {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
     text-align: center;
-    padding: var(--space-6) 0;
-    color: var(--text-sub);
   }
 
-  .error button, .empty a {
-    display: inline-block;
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-4);
+  .error-box p {
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin: 0;
+  }
+
+  .retry-btn {
+    margin-top: var(--space-4);
+    padding: var(--space-4) var(--space-5);
     background: var(--accent);
     color: white;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
     border-radius: var(--radius);
   }
 
-  .list {
+  .empty-box {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-7);
+    text-align: center;
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    align-items: center;
+    gap: var(--space-4);
   }
 
-  .item {
-    display: flex;
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    color: var(--text-quaternary);
+  }
+
+  .empty-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .empty-box p {
+    color: var(--text-secondary);
+    font-size: 17px;
+    margin: 0;
+  }
+
+  .browse-btn {
+    margin-top: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    background: var(--accent);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--radius);
+  }
+
+  /* 리스트 */
+  .list {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    transition: border-color 0.15s;
   }
 
-  .item:hover {
-    border-color: var(--border-light);
+  .list-item {
+    display: flex;
+    border-bottom: 0.5px solid var(--separator);
+    transition: background var(--duration-fast) var(--ease);
+  }
+
+  .list-item:last-child {
+    border-bottom: none;
   }
 
   .item-content {
     flex: 1;
-    padding: var(--space-4);
+    padding: var(--space-5);
     min-width: 0;
   }
 
-  .item-cat {
+  .item-content:active {
+    background: var(--bg-tertiary);
+  }
+
+  .item-category {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--accent);
     margin-bottom: var(--space-2);
   }
 
   .item-title {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
-    color: var(--text-main);
-    line-height: 1.4;
-    margin: 0 0 var(--space-2);
-  }
-
-  .item:hover .item-title {
-    color: var(--accent);
-  }
-
-  .item-signal {
-    font-size: 13px;
-    color: var(--accent);
+    color: var(--text-primary);
     line-height: 1.5;
+    margin: 0 0 var(--space-2);
+    letter-spacing: -0.01em;
+  }
+
+  .item-highlight {
+    font-size: 15px;
+    color: var(--accent);
+    line-height: 1.6;
     margin: 0;
   }
 
   .item-desc {
-    font-size: 13px;
-    color: var(--text-body);
-    line-height: 1.5;
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -209,22 +263,25 @@
   }
 
   .remove-btn {
-    width: 48px;
+    width: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--accent);
-    border-left: 1px solid var(--border);
-    transition: all 0.15s;
+    border-left: 0.5px solid var(--separator);
+    transition: all var(--duration-fast) var(--ease);
+  }
+
+  .remove-btn:active {
+    background: var(--bg-tertiary);
   }
 
   .remove-btn:hover {
-    background: var(--card-hover);
-    color: var(--accent-red);
+    color: var(--system-red);
   }
 
   .remove-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
   }
 </style>

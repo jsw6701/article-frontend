@@ -67,6 +67,58 @@
   function getDisplayTitle(item: CardDetail): string {
     return item.headline || item.issueTitle;
   }
+
+  /**
+   * 텍스트를 문단 배열로 분리
+   * - 기존 줄바꿈(\n\n)이 있으면 그대로 사용
+   * - 없으면 문장 단위로 2-3문장씩 그룹화하여 문단 생성
+   */
+  function splitIntoParagraphs(text: string | undefined): string[] {
+    if (!text) return [];
+
+    const trimmed = text.trim();
+
+    // 이미 문단 구분(\n\n)이 있으면 그대로 사용
+    if (trimmed.includes('\n\n')) {
+      return trimmed.split(/\n\n+/).map(p => p.trim()).filter(p => p);
+    }
+
+    // 단일 줄바꿈이 있으면 그것도 문단으로 처리
+    if (trimmed.includes('\n')) {
+      return trimmed.split(/\n+/).map(p => p.trim()).filter(p => p);
+    }
+
+    // 문장 분리 (마침표, 물음표, 느낌표 기준)
+    // 단, 숫자 뒤의 마침표(예: 1.5%)는 분리하지 않음
+    const sentences = trimmed
+      .split(/(?<=[.!?])(?=\s+[가-힣A-Z])/)
+      .map(s => s.trim())
+      .filter(s => s);
+
+    // 문장이 3개 이하면 그냥 하나의 문단으로
+    if (sentences.length <= 3) {
+      return [trimmed];
+    }
+
+    // 문장이 많으면 2-3문장씩 그룹화
+    const paragraphs: string[] = [];
+    let current: string[] = [];
+
+    sentences.forEach((sentence, i) => {
+      current.push(sentence);
+      // 2문장마다 또는 마지막 문장에서 문단 생성
+      if (current.length >= 2 || i === sentences.length - 1) {
+        paragraphs.push(current.join(' '));
+        current = [];
+      }
+    });
+
+    if (current.length > 0) {
+      paragraphs.push(current.join(' '));
+    }
+
+    return paragraphs;
+  }
 </script>
 
 {#if loading}
@@ -164,13 +216,17 @@
     <!-- 핵심 결론 -->
     <section class="section highlight">
       <h2>핵심 요약</h2>
-      <p class="lead">{card.conclusion}</p>
+      {#each splitIntoParagraphs(card.conclusion) as paragraph}
+        <p class="lead">{paragraph}</p>
+      {/each}
     </section>
 
     <!-- 왜 중요한가 -->
     <section class="section">
       <h2>왜 중요한가</h2>
-      <p>{card.why_it_matters}</p>
+      {#each splitIntoParagraphs(card.why_it_matters) as paragraph}
+        <p>{paragraph}</p>
+      {/each}
     </section>
 
     <!-- 근거 -->
@@ -181,7 +237,9 @@
           {#each card.evidence as ev}
             <li>
               <span class="ev-source">{ev.source}</span>
-              <span class="ev-fact">{ev.fact}</span>
+              {#each splitIntoParagraphs(ev.fact) as paragraph}
+                <span class="ev-fact">{paragraph}</span>
+              {/each}
             </li>
           {/each}
         </ul>
@@ -191,7 +249,9 @@
     <!-- 반대 시나리오 -->
     <section class="section">
       <h2>반대 시나리오</h2>
-      <p>{card.counter_scenario}</p>
+      {#each splitIntoParagraphs(card.counter_scenario) as paragraph}
+        <p>{paragraph}</p>
+      {/each}
     </section>
 
     <!-- 영향도 -->
@@ -205,14 +265,18 @@
         <div class="impact-bar">
           <div class="impact-fill" style="width: {((card.impact?.score ?? 0) / 5) * 100}%"></div>
         </div>
-        <p class="impact-reason">{card.impact?.reason}</p>
+        {#each splitIntoParagraphs(card.impact?.reason) as paragraph}
+          <p class="impact-reason">{paragraph}</p>
+        {/each}
       </div>
     </section>
 
     <!-- 행동 가이드 -->
     <section class="section action">
       <h2>행동 가이드</h2>
-      <p>{card.action_guide}</p>
+      {#each splitIntoParagraphs(card.action_guide) as paragraph}
+        <p>{paragraph}</p>
+      {/each}
     </section>
 
     <!-- 관련 기사 -->
@@ -241,12 +305,14 @@
     display: flex;
     justify-content: center;
     padding: var(--space-6) 0;
+    min-height: 40vh;
+    align-items: center;
   }
 
   .spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--border);
+    border: 2.5px solid var(--separator);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -259,24 +325,27 @@
   .error {
     text-align: center;
     padding: var(--space-6) 0;
-    color: var(--text-sub);
+    color: var(--text-secondary);
+    font-size: 16px;
   }
 
   .error a {
     display: inline-block;
     margin-top: var(--space-3);
     color: var(--accent);
+    font-weight: 500;
   }
 
   .article {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-5);
   }
 
   .back {
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 15px;
+    color: var(--text-tertiary);
+    font-weight: 500;
   }
 
   .back:hover {
@@ -285,14 +354,15 @@
 
   /* 헤더 */
   .header {
-    padding-bottom: var(--space-4);
-    border-bottom: 1px solid var(--border);
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--separator);
   }
 
   .header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: var(--space-3);
   }
 
   .header-left {
@@ -302,18 +372,18 @@
   }
 
   .cat {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--accent);
   }
 
   .bookmark-btn {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-sub);
+    color: var(--text-tertiary);
     border-radius: var(--radius);
     transition: all 0.2s var(--ease);
   }
@@ -332,59 +402,64 @@
   }
 
   .bookmark-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
   }
 
   .title {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
-    color: var(--text-main);
-    line-height: 1.3;
-    margin: var(--space-2) 0;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
   }
 
   .signal {
-    font-size: 15px;
+    font-size: 17px;
     color: var(--accent);
-    line-height: 1.5;
-    margin: 0 0 var(--space-2);
+    line-height: 1.6;
+    margin: 0 0 var(--space-3);
+    font-weight: 500;
   }
 
   .meta {
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 14px;
+    color: var(--text-tertiary);
     display: flex;
-    gap: var(--space-1);
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
 
   /* 섹션 */
   .section {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
   }
 
   .section h2 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--text-sub);
-    margin: 0 0 var(--space-3);
+    color: var(--text-tertiary);
+    margin: 0 0 var(--space-4);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.05em;
   }
 
   .section p {
-    font-size: 15px;
-    color: var(--text-main);
+    font-size: 17px;
+    color: var(--text-primary);
     line-height: 1.7;
     margin: 0;
   }
 
+  .section p + p {
+    margin-top: var(--space-4);
+  }
+
   .section.highlight {
-    border-color: var(--accent);
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(var(--accent-rgb), 0.08);
   }
 
   .section.highlight h2 {
@@ -392,77 +467,81 @@
   }
 
   .lead {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 500;
+    line-height: 1.6;
   }
 
   .section.action {
-    border-color: var(--accent-green);
-    background: rgba(34, 197, 94, 0.05);
+    background: rgba(52, 199, 89, 0.08);
   }
 
   .section.action h2 {
-    color: var(--accent-green);
+    color: var(--system-green);
   }
 
   /* 근거 */
   .evidence {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-4);
   }
 
   .evidence li {
-    padding: var(--space-3);
-    background: var(--card-hover);
+    padding: var(--space-4);
+    background: var(--bg-secondary);
     border-radius: var(--radius);
   }
 
   .ev-source {
     display: inline-block;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--accent);
-    background: rgba(59, 130, 246, 0.1);
-    padding: 2px 8px;
+    background: rgba(var(--accent-rgb), 0.15);
+    padding: 4px 10px;
     border-radius: var(--radius);
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--space-2);
   }
 
   .ev-fact {
     display: block;
-    font-size: 14px;
-    color: var(--text-body);
+    font-size: 16px;
+    color: var(--text-secondary);
     line-height: 1.6;
+  }
+
+  .ev-fact + .ev-fact {
+    margin-top: var(--space-2);
   }
 
   /* 영향도 */
   .impact {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-4);
   }
 
   .impact-score {
     display: flex;
     align-items: baseline;
-    gap: 2px;
+    gap: 4px;
   }
 
   .score-num {
-    font-size: 36px;
+    font-size: 42px;
     font-weight: 700;
     color: var(--accent);
   }
 
   .score-max {
-    font-size: 16px;
-    color: var(--text-sub);
+    font-size: 18px;
+    color: var(--text-tertiary);
   }
 
   .impact-bar {
-    height: 6px;
-    background: var(--card-hover);
+    height: 8px;
+    background: var(--bg-tertiary);
     border-radius: var(--radius-full);
     overflow: hidden;
   }
@@ -474,8 +553,9 @@
   }
 
   .impact-reason {
-    font-size: 14px;
-    color: var(--text-body);
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.6;
   }
 
   /* 관련 기사 */
@@ -485,7 +565,7 @@
   }
 
   .articles li {
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--separator);
   }
 
   .articles li:last-child {
@@ -494,7 +574,7 @@
 
   .articles a {
     display: block;
-    padding: var(--space-3) 0;
+    padding: var(--space-4) 0;
   }
 
   .articles a:hover .art-title {
@@ -503,45 +583,40 @@
 
   .art-title {
     display: block;
-    font-size: 14px;
-    color: var(--text-main);
+    font-size: 16px;
+    color: var(--text-primary);
     line-height: 1.5;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-1);
   }
 
   .art-meta {
-    font-size: 12px;
-    color: var(--text-sub);
+    font-size: 14px;
+    color: var(--text-tertiary);
   }
 
   /* 이슈 생애주기 섹션 */
   .lifecycle-section {
-    border-color: var(--border-light);
+    background: var(--card);
   }
 
   .lifecycle-section[data-stage="EMERGING"] {
-    border-color: rgba(251, 146, 60, 0.5);
-    background: rgba(251, 146, 60, 0.05);
+    background: rgba(251, 146, 60, 0.08);
   }
 
   .lifecycle-section[data-stage="SPREADING"] {
-    border-color: rgba(74, 222, 128, 0.5);
-    background: rgba(74, 222, 128, 0.05);
+    background: rgba(74, 222, 128, 0.08);
   }
 
   .lifecycle-section[data-stage="PEAK"] {
-    border-color: rgba(251, 191, 36, 0.5);
-    background: rgba(251, 191, 36, 0.05);
+    background: rgba(251, 191, 36, 0.08);
   }
 
   .lifecycle-section[data-stage="DECLINING"] {
-    border-color: rgba(96, 165, 250, 0.5);
-    background: rgba(96, 165, 250, 0.05);
+    background: rgba(96, 165, 250, 0.08);
   }
 
   .lifecycle-section[data-stage="DORMANT"] {
-    border-color: rgba(113, 113, 122, 0.5);
-    background: rgba(113, 113, 122, 0.05);
+    background: rgba(113, 113, 122, 0.08);
   }
 
   .lifecycle-content {
@@ -557,24 +632,24 @@
   }
 
   .lifecycle-emoji {
-    font-size: 32px;
+    font-size: 36px;
   }
 
   .lifecycle-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
   }
 
   .lifecycle-label {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
-    color: var(--text-main);
+    color: var(--text-primary);
   }
 
   .lifecycle-desc {
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 15px;
+    color: var(--text-secondary);
   }
 
   .lifecycle-stats {
@@ -586,23 +661,23 @@
   .lifecycle-stat {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: var(--space-2) var(--space-3);
-    background: var(--card-hover);
+    gap: 4px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-secondary);
     border-radius: var(--radius);
-    min-width: 100px;
+    min-width: 110px;
   }
 
   .lifecycle-stat .stat-label {
-    font-size: 11px;
-    color: var(--text-sub);
+    font-size: 12px;
+    color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
 
   .lifecycle-stat .stat-value {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--text-primary);
   }
 </style>

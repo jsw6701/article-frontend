@@ -45,27 +45,31 @@
   }
 </script>
 
+<svelte:head>
+  <title>트렌드 - SHIFT</title>
+</svelte:head>
+
 <div class="page">
-  <header class="page-header">
-    <h1>트렌딩</h1>
-    <p>{activeTab === 'trend' ? '기사가 많이 나온 이슈' : '조회수가 높은 이슈'}</p>
+  <header class="header">
+    <h1 class="title">트렌드</h1>
+    <p class="subtitle">{activeTab === 'trend' ? '기사가 많이 나온 이슈' : '조회수가 높은 이슈'}</p>
   </header>
 
-  <!-- 탭 -->
-  <div class="tab-header">
+  <!-- 세그먼트 컨트롤 -->
+  <div class="segment-control">
     <button
-      class="tab-btn"
+      class="segment"
       class:active={activeTab === 'trend'}
       on:click={() => activeTab = 'trend'}
     >
-      화제
+      실시간
     </button>
     <button
-      class="tab-btn"
+      class="segment"
       class:active={activeTab === 'popular'}
       on:click={() => activeTab = 'popular'}
     >
-      조회수
+      인기
     </button>
   </div>
 
@@ -74,78 +78,70 @@
       <div class="spinner"></div>
     </div>
   {:else if error}
-    <div class="error">
+    <div class="message-box">
       <p>{error}</p>
-      <button on:click={() => location.reload()}>다시 시도</button>
+      <button class="action-btn" on:click={() => location.reload()}>다시 시도</button>
     </div>
   {:else}
     <div class="list">
       {#if activeTab === 'trend'}
         {#if trends.length === 0}
-          <div class="empty">
+          <div class="message-box">
             <p>트렌딩 이슈가 없습니다</p>
           </div>
         {:else}
           {#each trends as item, i}
-            <a href="{base}/cards/{item.issueId}" class="item">
-              <div class="rank" class:top={i < 3}>{i + 1}</div>
-              <div class="content">
-                <div class="content-header">
-                  <span class="cat">{getGroupLabel(item.issueGroup)}</span>
-                  {#if item.lifecycle}
-                    <LifecycleBadge lifecycle={item.lifecycle} showChange={true} />
-                  {/if}
-                </div>
-                <h2 class="title">{getDisplayTitle(item)}</h2>
-                {#if item.signalSummary}
-                  <p class="summary">{item.signalSummary}</p>
-                {:else if item.conclusion}
-                  <p class="summary">{item.conclusion}</p>
+            <a href="{base}/cards/{item.issueId}" class="card">
+              <div class="card-top">
+                <span class="rank" class:top={i < 3}>{i + 1}</span>
+                <span class="category">{getGroupLabel(item.issueGroup)}</span>
+                {#if item.lifecycle}
+                  <LifecycleBadge lifecycle={item.lifecycle} showChange={true} />
                 {/if}
-                <div class="stats">
-                  <span class="stat">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14,2 14,8 20,8"/>
-                    </svg>
-                    {item.articleCount}개 기사
-                  </span>
-                </div>
+              </div>
+              <h2 class="card-title">{getDisplayTitle(item)}</h2>
+              {#if item.signalSummary}
+                <p class="card-summary">{item.signalSummary}</p>
+              {:else if item.conclusion}
+                <p class="card-summary">{item.conclusion}</p>
+              {/if}
+              <div class="card-meta">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                </svg>
+                <span>{item.articleCount}개 기사</span>
               </div>
             </a>
           {/each}
         {/if}
       {:else}
         {#if popular.length === 0}
-          <div class="empty">
+          <div class="message-box">
             <p>인기 이슈가 없습니다</p>
           </div>
         {:else}
           {#each popular as item, i}
-            <a href="{base}/cards/{item.card.issueId}" class="item">
-              <div class="rank" class:top={i < 3}>{i + 1}</div>
-              <div class="content">
-                <div class="content-header">
-                  <span class="cat">{getGroupLabel(item.card.issueGroup)}</span>
-                  {#if item.card.lifecycle}
-                    <LifecycleBadge lifecycle={item.card.lifecycle} showChange={true} />
-                  {/if}
-                </div>
-                <h2 class="title">{getPopularDisplayTitle(item)}</h2>
-                {#if item.card.signalSummary}
-                  <p class="summary">{item.card.signalSummary}</p>
-                {:else if item.card.conclusion}
-                  <p class="summary">{item.card.conclusion}</p>
+            <a href="{base}/cards/{item.card.issueId}" class="card">
+              <div class="card-top">
+                <span class="rank" class:top={i < 3}>{i + 1}</span>
+                <span class="category">{getGroupLabel(item.card.issueGroup)}</span>
+                {#if item.card.lifecycle}
+                  <LifecycleBadge lifecycle={item.card.lifecycle} showChange={true} />
                 {/if}
-                <div class="stats">
-                  <span class="stat">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    {formatViewCount(item.viewCount)} 조회
-                  </span>
-                </div>
+              </div>
+              <h2 class="card-title">{getPopularDisplayTitle(item)}</h2>
+              {#if item.card.signalSummary}
+                <p class="card-summary">{item.card.signalSummary}</p>
+              {:else if item.card.conclusion}
+                <p class="card-summary">{item.card.conclusion}</p>
+              {/if}
+              <div class="card-meta">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                </svg>
+                <span>{formatViewCount(item.viewCount)} 조회</span>
               </div>
             </a>
           {/each}
@@ -159,66 +155,63 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-5);
   }
 
-  .page-header {
-    padding: var(--space-2) 0;
+  .header {
+    padding-top: var(--space-4);
   }
 
-  .page-header h1 {
-    font-size: 24px;
+  .title {
+    font-size: 28px;
     font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 4px;
-  }
-
-  .page-header p {
-    font-size: 13px;
-    color: var(--text-sub);
+    color: var(--text-primary);
     margin: 0;
+    letter-spacing: -0.02em;
   }
 
-  /* 탭 */
-  .tab-header {
+  .subtitle {
+    font-size: 15px;
+    color: var(--text-tertiary);
+    margin: var(--space-1) 0 0;
+  }
+
+  /* 세그먼트 컨트롤 */
+  .segment-control {
     display: flex;
-    gap: var(--space-1);
-    padding: 4px;
-    background: var(--card);
+    background: var(--bg-tertiary);
+    padding: 3px;
     border-radius: var(--radius);
-    border: 1px solid var(--border);
+    align-self: flex-start;
   }
 
-  .tab-btn {
-    flex: 1;
-    padding: var(--space-2) var(--space-3);
+  .segment {
+    padding: var(--space-2) var(--space-4);
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-sub);
-    background: transparent;
-    border-radius: var(--radius);
-    transition: all 0.15s;
+    color: var(--text-tertiary);
+    border-radius: 9px;
+    transition: all var(--duration) var(--ease);
+    white-space: nowrap;
   }
 
-  .tab-btn:hover {
-    color: var(--text-main);
-  }
-
-  .tab-btn.active {
-    color: var(--text-main);
-    background: var(--card-hover);
+  .segment.active {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
   }
 
   .loading {
     display: flex;
+    align-items: center;
     justify-content: center;
-    padding: var(--space-6) 0;
+    min-height: 40vh;
   }
 
   .spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--border);
+    border: 2.5px solid var(--separator);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -228,54 +221,66 @@
     to { transform: rotate(360deg); }
   }
 
-  .error, .empty {
+  .message-box {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
     text-align: center;
-    padding: var(--space-6) 0;
-    color: var(--text-sub);
   }
 
-  .error button {
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-4);
+  .message-box p {
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin: 0;
+  }
+
+  .action-btn {
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-5);
     background: var(--accent);
     color: white;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     border-radius: var(--radius);
   }
 
+  /* 카드 리스트 */
   .list {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
   }
 
-  .item {
-    display: flex;
-    gap: var(--space-4);
+  .card {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-4);
-    transition: border-color 0.15s;
+    display: block;
+    transition: transform var(--duration) var(--ease);
   }
 
-  .item:hover {
-    border-color: var(--border-light);
+  .card:active {
+    transform: scale(0.98);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
   }
 
   .rank {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    display: flex;
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
-    color: var(--text-sub);
-    background: var(--card-hover);
-    border-radius: var(--radius);
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    border-radius: 6px;
   }
 
   .rank.top {
@@ -283,61 +288,43 @@
     background: var(--accent);
   }
 
-  .content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .content-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  .cat {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent);
-  }
-
-  .title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-main);
-    line-height: 1.4;
-    margin: 4px 0 var(--space-2);
-  }
-
-  .item:hover .title {
-    color: var(--accent);
-  }
-
-  .summary {
+  .category {
     font-size: 13px;
-    color: var(--text-body);
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* 제목 - 가독성 최적화 */
+  .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
     line-height: 1.5;
     margin: 0 0 var(--space-2);
+    letter-spacing: -0.01em;
+  }
+
+  /* 요약 - 가독성 최적화 */
+  .card-summary {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 var(--space-3);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .stats {
-    display: flex;
-    gap: var(--space-3);
-  }
-
-  .stat {
+  .card-meta {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: var(--text-sub);
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-tertiary);
   }
 
-  .stat svg {
-    width: 12px;
-    height: 12px;
+  .card-meta svg {
+    opacity: 0.6;
   }
 </style>

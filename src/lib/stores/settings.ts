@@ -15,7 +15,7 @@ export interface UserSettings {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-  theme: 'dark',
+  theme: 'light',
   fontSize: 'medium',
   startPage: 'home'
 };

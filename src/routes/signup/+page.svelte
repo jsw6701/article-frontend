@@ -201,23 +201,28 @@
     loading = false;
   }
 
-  const ageGroupLabels: Record<AgeGroup, string> = {
-    TEENS: "10대",
-    TWENTIES: "20대",
-    THIRTIES: "30대",
-    FORTIES: "40대",
-    FIFTIES: "50대",
-    SIXTIES_PLUS: "60대 이상",
-  };
+  const ageGroupOptions: { value: AgeGroup; label: string }[] = [
+    { value: "TEENS", label: "10대" },
+    { value: "TWENTIES", label: "20대" },
+    { value: "THIRTIES", label: "30대" },
+    { value: "FORTIES", label: "40대" },
+    { value: "FIFTIES", label: "50대" },
+    { value: "SIXTIES_PLUS", label: "60대+" },
+  ];
 </script>
 
+<svelte:head>
+  <title>회원가입 - SHIFT</title>
+</svelte:head>
+
 <div class="page">
-  <header class="page-header">
+  <header class="header">
     <ShiftLogo size="lg" />
-    <p>새 계정을 만드세요</p>
+    <p class="subtitle">새 계정을 만드세요</p>
   </header>
 
   <form class="form" on:submit|preventDefault={handleSubmit}>
+    <!-- 아이디 -->
     <div class="field">
       <label for="username">아이디</label>
       <input
@@ -239,9 +244,10 @@
       {/if}
     </div>
 
+    <!-- 이메일 -->
     <div class="field">
       <label for="email">이메일</label>
-      <div class="email-row">
+      <div class="input-row">
         <input
           type="email"
           id="email"
@@ -253,23 +259,23 @@
         />
         <button
           type="button"
-          class="verify-btn"
+          class="inline-btn"
           on:click={handleSendVerification}
           disabled={emailStatus.sending || emailStatus.verified || !email}
         >
           {#if emailStatus.sending}
-            발송중...
+            발송중
           {:else if emailStatus.verified}
-            인증완료
+            완료
           {:else if emailStatus.sent}
             재발송
           {:else}
-            인증요청
+            인증
           {/if}
         </button>
       </div>
       {#if emailStatus.message && !emailStatus.verified}
-        <span class="hint" class:success={emailStatus.sent && !emailStatus.verified} class:error={!emailStatus.sent && !emailStatus.verified}>
+        <span class="hint" class:success={emailStatus.sent} class:error={!emailStatus.sent}>
           {emailStatus.message}
           {#if emailStatus.expireMinutes}
             ({emailStatus.expireMinutes}분 유효)
@@ -281,34 +287,33 @@
       {/if}
     </div>
 
+    <!-- 인증 코드 -->
     {#if emailStatus.sent && !emailStatus.verified}
       <div class="field">
         <label for="verificationCode">인증 코드</label>
-        <div class="code-row">
+        <div class="input-row">
           <input
             type="text"
             id="verificationCode"
             bind:value={verificationCode}
-            placeholder="6자리 코드 입력"
+            placeholder="6자리 코드"
             maxlength="6"
             inputmode="numeric"
             pattern="[0-9]*"
           />
           <button
             type="button"
-            class="verify-btn"
+            class="inline-btn"
             on:click={handleVerifyCode}
             disabled={emailStatus.verifying || verificationCode.length !== 6}
           >
-            {emailStatus.verifying ? "확인중..." : "확인"}
+            {emailStatus.verifying ? "확인중" : "확인"}
           </button>
         </div>
-        {#if emailStatus.message && emailStatus.sent && !emailStatus.verified}
-          <span class="hint error">{emailStatus.message}</span>
-        {/if}
       </div>
     {/if}
 
+    <!-- 비밀번호 -->
     <div class="field">
       <label for="password">비밀번호</label>
       <input
@@ -320,6 +325,7 @@
       />
     </div>
 
+    <!-- 비밀번호 확인 -->
     <div class="field">
       <label for="passwordConfirm">비밀번호 확인</label>
       <input
@@ -331,27 +337,44 @@
       />
     </div>
 
+    <!-- 성별 -->
     <div class="field">
       <label>성별</label>
-      <div class="radio-group">
-        <label class="radio" class:active={gender === 'MALE'}>
-          <input type="radio" bind:group={gender} value="MALE" />
+      <div class="segment-control">
+        <button
+          type="button"
+          class="segment"
+          class:active={gender === 'MALE'}
+          on:click={() => gender = 'MALE'}
+        >
           남성
-        </label>
-        <label class="radio" class:active={gender === 'FEMALE'}>
-          <input type="radio" bind:group={gender} value="FEMALE" />
+        </button>
+        <button
+          type="button"
+          class="segment"
+          class:active={gender === 'FEMALE'}
+          on:click={() => gender = 'FEMALE'}
+        >
           여성
-        </label>
+        </button>
       </div>
     </div>
 
+    <!-- 연령대 -->
     <div class="field">
-      <label for="ageGroup">연령대</label>
-      <select id="ageGroup" bind:value={ageGroup}>
-        {#each Object.entries(ageGroupLabels) as [value, label]}
-          <option {value}>{label}</option>
+      <label>연령대</label>
+      <div class="segment-control wide">
+        {#each ageGroupOptions as opt}
+          <button
+            type="button"
+            class="segment"
+            class:active={ageGroup === opt.value}
+            on:click={() => ageGroup = opt.value}
+          >
+            {opt.label}
+          </button>
         {/each}
-      </select>
+      </div>
     </div>
 
     {#if error}
@@ -371,205 +394,197 @@
 
 <style>
   .page {
-    max-width: 360px;
+    max-width: 380px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding-top: var(--space-3);
+  }
+
+  .header {
+    text-align: center;
+    padding: var(--space-4) 0;
+  }
+
+  .subtitle {
+    font-size: 17px;
+    color: var(--text-secondary);
+    margin: var(--space-3) 0 0;
+  }
+
+  .form {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
   }
 
-  .page-header {
-    padding: var(--space-4) 0 var(--space-2);
-    text-align: center;
-  }
-
-
-  .page-header p {
-    font-size: 13px;
-    color: var(--text-sub);
-    margin: 0;
-  }
-
-  .form {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-
   .field {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--space-2);
   }
 
   .field > label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-left: var(--space-1);
   }
 
-  .field input[type="text"],
-  .field input[type="password"],
-  .field input[type="email"] {
-    padding: var(--space-3);
-    font-size: 15px;
-    color: var(--text-main);
-    background: var(--card-hover);
-    border: 1px solid var(--border);
+  .field input {
+    padding: var(--space-4);
+    font-size: 17px;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: none;
     border-radius: var(--radius);
-    transition: border-color 0.15s;
+    transition: box-shadow var(--duration-fast) var(--ease);
   }
 
   .field input::placeholder {
-    color: var(--text-sub);
+    color: var(--text-tertiary);
   }
 
   .field input:focus {
     outline: none;
-    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-glow);
   }
 
   .field input.success {
-    border-color: var(--accent-green);
+    box-shadow: 0 0 0 2px var(--system-green);
   }
 
   .field input.error {
-    border-color: var(--accent-red);
+    box-shadow: 0 0 0 2px var(--system-red);
   }
 
-  .email-row,
-  .code-row {
-    position: relative;
-    display: flex;
-    align-items: center;
+  .field input:disabled {
+    opacity: 0.6;
   }
 
-  .email-row input,
-  .code-row input {
-    flex: 1;
-    padding-right: 80px;
-  }
-
-  .verify-btn {
-    position: absolute;
-    right: var(--space-2);
-    padding: var(--space-1) var(--space-2);
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
-    color: var(--accent);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
-    transition: all 0.15s;
-  }
-
-  .verify-btn:hover:not(:disabled) {
-    background: rgba(59, 130, 246, 0.1);
-  }
-
-  .verify-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .hint {
-    font-size: 12px;
-    color: var(--text-sub);
-  }
-
-  .hint.success {
-    color: var(--accent-green);
-  }
-
-  .hint.error {
-    color: var(--accent-red);
-  }
-
-  .field select {
-    padding: var(--space-3);
-    font-size: 15px;
-    color: var(--text-main);
-    background: var(--card-hover);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-  }
-
-  .field select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-
-  .radio-group {
+  .input-row {
     display: flex;
     gap: var(--space-2);
   }
 
-  .radio {
+  .input-row input {
     flex: 1;
+    min-width: 0;
+  }
+
+  .inline-btn {
+    padding: 0 var(--space-4);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    white-space: nowrap;
+    transition: all var(--duration-fast) var(--ease);
+  }
+
+  .inline-btn:disabled {
+    opacity: 0.5;
+  }
+
+  .inline-btn:not(:disabled):active {
+    background: var(--bg-secondary);
+  }
+
+  .hint {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    padding-left: var(--space-1);
+  }
+
+  .hint.success {
+    color: var(--system-green);
+  }
+
+  .hint.error {
+    color: var(--system-red);
+  }
+
+  /* 세그먼트 컨트롤 */
+  .segment-control {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: var(--space-2);
+  }
+
+  .segment-control.wide {
+    flex-wrap: wrap;
+  }
+
+  .segment {
+    flex: 1;
+    padding: var(--space-3) var(--space-4);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    transition: all var(--duration-fast) var(--ease);
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .segment-control.wide .segment {
+    flex: 0 0 auto;
     padding: var(--space-3);
     font-size: 14px;
-    color: var(--text-body);
-    background: var(--card-hover);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all 0.15s;
   }
 
-  .radio:hover {
-    border-color: var(--border-light);
+  .segment:active {
+    transform: scale(0.98);
   }
 
-  .radio.active {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: rgba(59, 130, 246, 0.1);
-  }
-
-  .radio input {
-    display: none;
+  .segment.active {
+    color: white;
+    background: var(--accent);
   }
 
   .error-msg {
-    font-size: 13px;
-    color: var(--accent-red);
-    padding: var(--space-3);
-    background: rgba(239, 68, 68, 0.1);
+    font-size: 15px;
+    color: var(--system-red);
+    padding: var(--space-4);
+    background: rgba(255, 59, 48, 0.1);
     border-radius: var(--radius);
+    text-align: center;
+    line-height: 1.5;
   }
 
   .submit {
-    padding: var(--space-3);
-    font-size: 15px;
+    padding: var(--space-4);
+    font-size: 17px;
     font-weight: 600;
     color: white;
     background: var(--accent);
     border-radius: var(--radius);
-    transition: opacity 0.15s;
+    transition: opacity var(--duration-fast) var(--ease);
+    margin-top: var(--space-2);
   }
 
   .submit:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
+  }
+
+  .submit:not(:disabled):active {
+    opacity: 0.8;
   }
 
   .footer {
     text-align: center;
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 16px;
+    color: var(--text-secondary);
   }
 
   .footer a {
     color: var(--accent);
-    font-weight: 500;
-    margin-left: var(--space-1);
+    font-weight: 600;
+    margin-left: var(--space-2);
   }
 </style>

@@ -244,20 +244,21 @@
   .admin-page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-6);
   }
 
   .page-header {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-4);
   }
 
   .page-header h1 {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 700;
-    color: var(--text-main);
+    color: var(--text-primary);
     margin: 0;
+    letter-spacing: -0.02em;
   }
 
   .admin-nav {
@@ -266,36 +267,37 @@
   }
 
   .nav-item {
-    padding: var(--space-2) var(--space-3);
-    font-size: 14px;
+    padding: var(--space-3) var(--space-4);
+    font-size: 15px;
     font-weight: 500;
-    color: var(--text-sub);
+    color: var(--text-secondary);
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius);
     transition: all 0.15s;
   }
 
   .nav-item:hover {
-    color: var(--text-main);
-    border-color: var(--border-light);
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
   }
 
   .nav-item.active {
-    color: var(--accent);
-    border-color: var(--accent);
+    color: white;
+    background: var(--accent);
   }
 
   .loading {
     display: flex;
     justify-content: center;
     padding: var(--space-6) 0;
+    min-height: 40vh;
+    align-items: center;
   }
 
   .spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--border);
+    border: 2.5px solid var(--separator);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -308,16 +310,17 @@
   .error {
     text-align: center;
     padding: var(--space-6) 0;
-    color: var(--text-sub);
+    color: var(--text-secondary);
+    font-size: 16px;
   }
 
   .error button {
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-4);
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-5);
     background: var(--accent);
     color: white;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     border-radius: var(--radius);
   }
 
@@ -334,62 +337,61 @@
 
   .summary-card {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
 
   .summary-label {
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 14px;
+    color: var(--text-tertiary);
   }
 
   .summary-value {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
-    color: var(--text-main);
+    color: var(--text-primary);
   }
 
   .summary-sub {
-    font-size: 12px;
-    color: var(--accent);
+    font-size: 14px;
+    color: var(--system-green);
+    font-weight: 500;
   }
 
   /* 차트 섹션 */
   .chart-section {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
   }
 
   .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
   }
 
   .section-header h2 {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
-    color: var(--text-main);
+    color: var(--text-primary);
     margin: 0;
   }
 
   .period {
-    font-size: 12px;
-    color: var(--text-sub);
+    font-size: 14px;
+    color: var(--text-tertiary);
   }
 
   /* 바 차트 */
   .bar-chart {
     display: flex;
-    gap: 4px;
-    height: 120px;
+    gap: 6px;
+    height: 140px;
     align-items: flex-end;
     overflow-x: auto;
     padding-bottom: var(--space-6);
@@ -397,7 +399,7 @@
 
   .bar-item {
     flex: 1;
-    min-width: 20px;
+    min-width: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -406,7 +408,7 @@
 
   .bar-wrapper {
     width: 100%;
-    height: 80px;
+    height: 100px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -414,87 +416,87 @@
 
   .bar {
     width: 100%;
-    max-width: 24px;
+    max-width: 28px;
     background: var(--accent);
-    border-radius: 2px 2px 0 0;
-    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
   }
 
   .bar-view {
-    background: #10b981;
+    background: var(--system-green);
   }
 
   .bar-label {
-    font-size: 10px;
-    color: var(--text-sub);
-    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
     white-space: nowrap;
   }
 
   .bar-value {
     position: absolute;
-    bottom: -20px;
-    font-size: 10px;
-    color: var(--text-sub);
+    bottom: -22px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
   }
 
   /* 분포 섹션 */
   .distribution-section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-4);
   }
 
   .dist-row {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-4);
   }
 
   .dist-card {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: var(--space-4);
+    padding: var(--space-5);
   }
 
   .dist-card h3 {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--text-main);
-    margin: 0 0 var(--space-3);
+    color: var(--text-primary);
+    margin: 0 0 var(--space-4);
   }
 
   .dist-items {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-3);
   }
 
   .dist-item {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
   }
 
   .dist-label {
-    font-size: 13px;
-    color: var(--text-sub);
-    width: 60px;
+    font-size: 15px;
+    color: var(--text-secondary);
+    width: 70px;
     flex-shrink: 0;
   }
 
   .dist-bar-wrapper {
     flex: 1;
-    height: 8px;
-    background: var(--card-hover);
-    border-radius: 4px;
+    height: 10px;
+    background: var(--bg-tertiary);
+    border-radius: 5px;
     overflow: hidden;
   }
 
   .dist-bar {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 5px;
   }
 
   .dist-bar.male {
@@ -531,10 +533,10 @@
   }
 
   .dist-value {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-main);
-    width: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    width: 60px;
     text-align: right;
     flex-shrink: 0;
   }

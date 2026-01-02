@@ -91,10 +91,14 @@
   }
 </script>
 
+<svelte:head>
+  <title>피드 - SHIFT</title>
+</svelte:head>
+
 <div class="page">
-  <header class="page-header">
-    <h1>전체 브리핑</h1>
-    <p>모든 브리핑 카드</p>
+  <header class="header">
+    <h1 class="title">피드</h1>
+    <p class="subtitle">모든 브리핑 카드</p>
   </header>
 
   {#if loading}
@@ -102,37 +106,38 @@
       <div class="spinner"></div>
     </div>
   {:else if error}
-    <div class="error">
+    <div class="message-box">
       <p>{error}</p>
-      <button on:click={() => location.reload()}>다시 시도</button>
+      <button class="action-btn" on:click={() => location.reload()}>다시 시도</button>
     </div>
   {:else if items.length === 0}
-    <div class="empty">
+    <div class="message-box">
       <p>브리핑 카드가 없습니다</p>
     </div>
   {:else}
-    <div class="list">
+    <div class="cards">
       {#each items as item}
-        <a href="{base}/cards/{item.issueId}" class="item">
-          <div class="item-header">
-            <div class="item-meta">
-              <span class="item-cat">{getGroupLabel(item.issueGroup)}</span>
+        <a href="{base}/cards/{item.issueId}" class="card">
+          <div class="card-header">
+            <div class="card-meta">
+              <span class="card-category">{getGroupLabel(item.issueGroup)}</span>
               {#if item.lifecycle}
                 <LifecycleBadge lifecycle={item.lifecycle} showChange={true} />
               {/if}
             </div>
-            <span class="item-time">{getTimeAgo(item.issueLastPublishedAt)}</span>
+            <span class="card-time">{getTimeAgo(item.issueLastPublishedAt)}</span>
           </div>
-          <h2 class="item-title">{getDisplayTitle(item)}</h2>
+          <h2 class="card-title">{getDisplayTitle(item)}</h2>
           {#if item.signalSummary}
-            <p class="item-signal">{item.signalSummary}</p>
+            <p class="card-highlight">{item.signalSummary}</p>
           {:else if item.conclusion}
-            <p class="item-desc">{item.conclusion}</p>
+            <p class="card-desc">{item.conclusion}</p>
           {/if}
-          <div class="item-footer">
+          <div class="card-footer">
             <span>{item.articleCount}개 기사</span>
             {#if item.viewCount}
-              <span class="item-views">{formatViewCount(item.viewCount)} 조회</span>
+              <span>·</span>
+              <span>{formatViewCount(item.viewCount)} 조회</span>
             {/if}
           </div>
         </a>
@@ -156,36 +161,38 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: var(--space-5);
   }
 
-  .page-header {
-    padding: var(--space-2) 0;
+  .header {
+    padding-top: var(--space-4);
   }
 
-  .page-header h1 {
-    font-size: 24px;
+  .title {
+    font-size: 28px;
     font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 4px;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.02em;
   }
 
-  .page-header p {
-    font-size: 13px;
-    color: var(--text-sub);
-    margin: 0;
+  .subtitle {
+    font-size: 15px;
+    color: var(--text-tertiary);
+    margin: var(--space-1) 0 0;
   }
 
   .loading {
     display: flex;
+    align-items: center;
     justify-content: center;
-    padding: var(--space-6) 0;
+    min-height: 40vh;
   }
 
   .spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--border);
+    border: 2.5px solid var(--separator);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -195,87 +202,90 @@
     to { transform: rotate(360deg); }
   }
 
-  .error, .empty {
+  .message-box {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
     text-align: center;
-    padding: var(--space-6) 0;
-    color: var(--text-sub);
   }
 
-  .error button {
-    margin-top: var(--space-3);
-    padding: var(--space-2) var(--space-4);
+  .message-box p {
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin: 0;
+  }
+
+  .action-btn {
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-5);
     background: var(--accent);
     color: white;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     border-radius: var(--radius);
   }
 
-  .list {
+  .cards {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
   }
 
-  .item {
+  .card {
     background: var(--card);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-4);
-    transition: border-color 0.15s;
+    transition: transform var(--duration) var(--ease);
   }
 
-  .item:hover {
-    border-color: var(--border-light);
+  .card:active {
+    transform: scale(0.98);
   }
 
-  .item-header {
+  .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-2);
   }
 
-  .item-meta {
+  .card-meta {
     display: flex;
     align-items: center;
     gap: var(--space-2);
   }
 
-  .item-cat {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent);
-  }
-
-  .item-time {
-    font-size: 12px;
-    color: var(--text-sub);
-  }
-
-  .item-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-main);
-    line-height: 1.4;
-    margin: 0 0 var(--space-2);
-  }
-
-  .item:hover .item-title {
-    color: var(--accent);
-  }
-
-  .item-signal {
+  .card-category {
     font-size: 13px;
+    font-weight: 600;
     color: var(--accent);
+  }
+
+  .card-time {
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+
+  .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
     line-height: 1.5;
+    margin: 0 0 var(--space-2);
+    letter-spacing: -0.01em;
+  }
+
+  .card-highlight {
+    font-size: 15px;
+    color: var(--accent);
+    line-height: 1.6;
     margin: 0 0 var(--space-3);
   }
 
-  .item-desc {
-    font-size: 13px;
-    color: var(--text-body);
-    line-height: 1.5;
+  .card-desc {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
     margin: 0 0 var(--space-3);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -283,20 +293,16 @@
     overflow: hidden;
   }
 
-  .item-footer {
-    font-size: 12px;
-    color: var(--text-sub);
+  .card-footer {
     display: flex;
+    align-items: center;
     gap: var(--space-2);
-  }
-
-  .item-views::before {
-    content: "·";
-    margin-right: var(--space-2);
+    font-size: 14px;
+    color: var(--text-tertiary);
   }
 
   .sentinel {
-    padding: var(--space-4) 0;
+    padding: var(--space-5) 0;
     min-height: 60px;
   }
 
@@ -307,8 +313,8 @@
 
   .end-message {
     text-align: center;
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 14px;
+    color: var(--text-tertiary);
     margin: 0;
   }
 </style>

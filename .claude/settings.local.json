@@ -13,7 +13,9 @@
       "Bash(npx cap sync:*)",
       "Bash(dir /b \"C:\\front\\news-briefing-frontend\\android\\app\\src\\main\\assets\\public\")",
       "Bash(npm run build:android:*)",
-      "Bash(dir /b \"C:\\front\")"
+      "Bash(dir /b \"C:\\front\")",
+      "WebSearch",
+      "WebFetch(domain:www.learnui.design)"
     ],
     "deny": [],
     "ask": []
