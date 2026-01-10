@@ -1,7 +1,7 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { goto } from "$app/navigation";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { signUp, checkUsername, sendEmailVerification, verifyEmail } from "$lib/api";
   import { auth, isLoggedIn } from "$lib/stores/auth";
   import type { Gender, AgeGroup } from "$lib/types";
@@ -10,6 +10,10 @@
   // 이미 로그인된 경우 메인으로 리다이렉트
   onMount(() => {
     auth.init();
+  });
+
+  onDestroy(() => {
+    if (timerInterval) clearInterval(timerInterval);
   });
 
   $: if ($isLoggedIn) {
@@ -48,6 +52,32 @@
 
   let error = "";
   let loading = false;
+
+  // 약관 동의
+  let agreeTerms = false;
+  let agreePrivacy = false;
+
+  // 타이머 관련
+  let timerInterval: ReturnType<typeof setInterval> | null = null;
+  let remainingSeconds = 0;
+
+  $: timerDisplay = remainingSeconds > 0
+    ? `${Math.floor(remainingSeconds / 60)}:${(remainingSeconds % 60).toString().padStart(2, '0')}`
+    : '';
+
+  $: isTimerExpired = emailStatus.sent && remainingSeconds === 0;
+
+  function startTimer(minutes: number) {
+    if (timerInterval) clearInterval(timerInterval);
+    remainingSeconds = minutes * 60;
+    timerInterval = setInterval(() => {
+      remainingSeconds--;
+      if (remainingSeconds <= 0) {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }, 1000);
+  }
 
   let checkTimeout: ReturnType<typeof setTimeout>;
 
@@ -105,6 +135,10 @@
           message: "인증 코드가 발송되었습니다",
           expireMinutes: res.expireMinutes,
         };
+        // 타이머 시작
+        if (res.expireMinutes) {
+          startTimer(res.expireMinutes);
+        }
       } else {
         emailStatus = {
           ...emailStatus,
@@ -184,6 +218,10 @@
     }
     if (usernameStatus.available === false) {
       error = "이미 사용중인 아이디입니다";
+      return;
+    }
+    if (!agreeTerms || !agreePrivacy) {
+      error = "이용약관 및 개인정보처리방침에 동의해주세요";
       return;
     }
 
@@ -275,10 +313,14 @@
         </button>
       </div>
       {#if emailStatus.message && !emailStatus.verified}
-        <span class="hint" class:success={emailStatus.sent} class:error={!emailStatus.sent}>
-          {emailStatus.message}
-          {#if emailStatus.expireMinutes}
-            ({emailStatus.expireMinutes}분 유효)
+        <span class="hint" class:success={emailStatus.sent && !isTimerExpired} class:error={!emailStatus.sent || isTimerExpired}>
+          {#if isTimerExpired}
+            인증 코드가 만료되었습니다. 다시 발송해주세요.
+          {:else}
+            {emailStatus.message}
+            {#if timerDisplay}
+              <span class="timer">({timerDisplay})</span>
+            {/if}
           {/if}
         </span>
       {/if}
@@ -300,16 +342,22 @@
             maxlength="6"
             inputmode="numeric"
             pattern="[0-9]*"
+            disabled={isTimerExpired}
           />
           <button
             type="button"
             class="inline-btn"
             on:click={handleVerifyCode}
-            disabled={emailStatus.verifying || verificationCode.length !== 6}
+            disabled={emailStatus.verifying || verificationCode.length !== 6 || isTimerExpired}
           >
             {emailStatus.verifying ? "확인중" : "확인"}
           </button>
         </div>
+        {#if !isTimerExpired}
+          <button type="button" class="resend-btn" on:click={handleSendVerification} disabled={emailStatus.sending}>
+            인증 코드 재발송
+          </button>
+        {/if}
       </div>
     {/if}
 
@@ -377,11 +425,29 @@
       </div>
     </div>
 
+    <!-- 약관 동의 -->
+    <div class="agreements">
+      <label class="agreement">
+        <input type="checkbox" bind:checked={agreeTerms} />
+        <span class="checkbox-custom"></span>
+        <span class="agreement-text">
+          <a href="{base}/terms" target="_blank" rel="noopener">서비스 이용약관</a>에 동의합니다 (필수)
+        </span>
+      </label>
+      <label class="agreement">
+        <input type="checkbox" bind:checked={agreePrivacy} />
+        <span class="checkbox-custom"></span>
+        <span class="agreement-text">
+          <a href="{base}/privacy" target="_blank" rel="noopener">개인정보처리방침</a>에 동의합니다 (필수)
+        </span>
+      </label>
+    </div>
+
     {#if error}
       <div class="error-msg">{error}</div>
     {/if}
 
-    <button type="submit" class="submit" disabled={loading}>
+    <button type="submit" class="submit" disabled={loading || !agreeTerms || !agreePrivacy}>
       {loading ? "가입 중..." : "회원가입"}
     </button>
   </form>
@@ -586,5 +652,96 @@
     color: var(--accent);
     font-weight: 600;
     margin-left: var(--space-2);
+  }
+
+  /* 약관 동의 */
+  .agreements {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+  }
+
+  .agreement {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .agreement input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .checkbox-custom {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--text-tertiary);
+    background: transparent;
+    transition: all var(--duration-fast) var(--ease);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .agreement input[type="checkbox"]:checked + .checkbox-custom {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .agreement input[type="checkbox"]:checked + .checkbox-custom::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: 2px solid white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+  }
+
+  .agreement-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .agreement-text a {
+    color: var(--accent);
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  /* 타이머 */
+  .timer {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* 재발송 버튼 */
+  .resend-btn {
+    margin-top: var(--space-2);
+    font-size: 13px;
+    color: var(--text-tertiary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--space-1);
+    transition: color var(--duration-fast) var(--ease);
+  }
+
+  .resend-btn:hover:not(:disabled) {
+    color: var(--accent);
+  }
+
+  .resend-btn:disabled {
+    opacity: 0.5;
   }
 </style>

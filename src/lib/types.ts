@@ -140,6 +140,7 @@ export interface LoginResponse {
   userId: number | null;
   username: string | null;
   role: UserRole | null;
+  requiresTermsAgreement: boolean | null;
   message: string | null;
 }
 

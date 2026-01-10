@@ -2,11 +2,11 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
-  import { getMyProfile, deleteMyAccount } from '$lib/api';
+  import { getMyProfile, deleteMyAccount, changePassword, updateProfile } from '$lib/api';
   import { auth, currentUser } from '$lib/stores/auth';
   import { settings, type FontSize, type StartPage } from '$lib/stores/settings';
   import { getAgeGroupLabel, getGenderLabel } from '$lib/utils/labels';
-  import type { MyProfile } from '$lib/types';
+  import type { MyProfile, Gender, AgeGroup } from '$lib/types';
 
   const fontSizeOptions: { value: FontSize; label: string }[] = [
     { value: 'small', label: '작게' },
@@ -20,14 +20,46 @@
     { value: 'trending', label: '트렌드' }
   ];
 
+  const genderOptions: { value: Gender; label: string }[] = [
+    { value: 'MALE', label: '남성' },
+    { value: 'FEMALE', label: '여성' }
+  ];
+
+  const ageGroupOptions: { value: AgeGroup; label: string }[] = [
+    { value: 'TEENS', label: '10대' },
+    { value: 'TWENTIES', label: '20대' },
+    { value: 'THIRTIES', label: '30대' },
+    { value: 'FORTIES', label: '40대' },
+    { value: 'FIFTIES', label: '50대' },
+    { value: 'SIXTIES_PLUS', label: '60대 이상' }
+  ];
+
   let profile: MyProfile | null = null;
   let loading = true;
   let error = '';
 
+  // 탈퇴 모달 상태
   let showDeleteModal = false;
   let deletePassword = '';
   let deleteLoading = false;
   let deleteError = '';
+
+  // 비밀번호 변경 모달 상태
+  let showPasswordModal = false;
+  let currentPassword = '';
+  let newPassword = '';
+  let confirmPassword = '';
+  let passwordLoading = false;
+  let passwordError = '';
+  let passwordSuccess = '';
+
+  // 프로필 수정 모달 상태
+  let showProfileModal = false;
+  let editGender: Gender = 'MALE';
+  let editAgeGroup: AgeGroup = 'TWENTIES';
+  let profileLoading = false;
+  let profileError = '';
+  let profileSuccess = '';
 
   onMount(async () => {
     if (!$currentUser) {
@@ -92,6 +124,132 @@
     showDeleteModal = false;
     deletePassword = '';
     deleteError = '';
+  }
+
+  // 비밀번호 변경
+  function openPasswordModal() {
+    showPasswordModal = true;
+    currentPassword = '';
+    newPassword = '';
+    confirmPassword = '';
+    passwordError = '';
+    passwordSuccess = '';
+  }
+
+  function closePasswordModal() {
+    showPasswordModal = false;
+    currentPassword = '';
+    newPassword = '';
+    confirmPassword = '';
+    passwordError = '';
+    passwordSuccess = '';
+  }
+
+  function validatePassword(password: string): { valid: boolean; message: string } {
+    if (password.length < 8) {
+      return { valid: false, message: '비밀번호는 8자 이상이어야 합니다.' };
+    }
+    if (!/\d/.test(password)) {
+      return { valid: false, message: '비밀번호에 숫자가 포함되어야 합니다.' };
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return { valid: false, message: '비밀번호에 특수문자가 포함되어야 합니다.' };
+    }
+    return { valid: true, message: '' };
+  }
+
+  function getPasswordStrength(password: string): { level: number; label: string; color: string } {
+    if (!password) return { level: 0, label: '', color: '' };
+
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+
+    if (score <= 2) return { level: 1, label: '약함', color: 'var(--system-red)' };
+    if (score <= 3) return { level: 2, label: '보통', color: 'var(--system-yellow)' };
+    return { level: 3, label: '강함', color: 'var(--system-green)' };
+  }
+
+  $: passwordStrength = getPasswordStrength(newPassword);
+
+  async function handleChangePassword() {
+    passwordError = '';
+    passwordSuccess = '';
+
+    if (!currentPassword) {
+      passwordError = '현재 비밀번호를 입력해주세요.';
+      return;
+    }
+
+    const validation = validatePassword(newPassword);
+    if (!validation.valid) {
+      passwordError = validation.message;
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      passwordError = '새 비밀번호가 일치하지 않습니다.';
+      return;
+    }
+
+    passwordLoading = true;
+    try {
+      const result = await changePassword({ currentPassword, newPassword });
+      if (result.success) {
+        passwordSuccess = '비밀번호가 변경되었습니다.';
+        setTimeout(() => closePasswordModal(), 1500);
+      } else {
+        passwordError = result.message || '비밀번호 변경에 실패했습니다.';
+      }
+    } catch (e) {
+      passwordError = e instanceof Error ? e.message : '비밀번호 변경 중 오류가 발생했습니다.';
+    } finally {
+      passwordLoading = false;
+    }
+  }
+
+  // 프로필 수정
+  function openProfileModal() {
+    if (profile) {
+      editGender = profile.gender as Gender;
+      editAgeGroup = profile.ageGroup as AgeGroup;
+    }
+    showProfileModal = true;
+    profileError = '';
+    profileSuccess = '';
+  }
+
+  function closeProfileModal() {
+    showProfileModal = false;
+    profileError = '';
+    profileSuccess = '';
+  }
+
+  async function handleUpdateProfile() {
+    profileError = '';
+    profileSuccess = '';
+    profileLoading = true;
+
+    try {
+      const result = await updateProfile({ gender: editGender, ageGroup: editAgeGroup });
+      if (result.success) {
+        profileSuccess = '프로필이 수정되었습니다.';
+        // 프로필 다시 불러오기
+        if (profile) {
+          profile = { ...profile, gender: editGender, ageGroup: editAgeGroup };
+        }
+        setTimeout(() => closeProfileModal(), 1500);
+      } else {
+        profileError = result.message || '프로필 수정에 실패했습니다.';
+      }
+    } catch (e) {
+      profileError = e instanceof Error ? e.message : '프로필 수정 중 오류가 발생했습니다.';
+    } finally {
+      profileLoading = false;
+    }
   }
 </script>
 
@@ -173,7 +331,10 @@
 
     <!-- 계정 정보 -->
     <section class="section">
-      <h3 class="section-title">계정 정보</h3>
+      <div class="section-header">
+        <h3 class="section-title">계정 정보</h3>
+        <button class="edit-btn" on:click={openProfileModal}>수정</button>
+      </div>
       <div class="group">
         <div class="row">
           <span class="row-label">성별</span>
@@ -191,6 +352,19 @@
           <span class="row-label">저장한 브리핑</span>
           <span class="row-value">{profile.bookmarkCount}개</span>
         </div>
+      </div>
+    </section>
+
+    <!-- 보안 -->
+    <section class="section">
+      <h3 class="section-title">보안</h3>
+      <div class="group">
+        <button class="row link" on:click={openPasswordModal}>
+          <span class="row-label">비밀번호 변경</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
       </div>
     </section>
 
@@ -255,6 +429,143 @@
         </button>
         <button class="modal-btn danger" on:click={handleDeleteAccount} disabled={deleteLoading}>
           {deleteLoading ? '처리 중...' : '탈퇴하기'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- 비밀번호 변경 모달 -->
+{#if showPasswordModal}
+  <div class="modal-backdrop" on:click={closePasswordModal} role="button" tabindex="-1" on:keydown={(e) => e.key === 'Escape' && closePasswordModal()}>
+    <div class="modal modal-lg" on:click|stopPropagation role="dialog" aria-modal="true">
+      <h2 class="modal-title">비밀번호 변경</h2>
+      <p class="modal-desc">새 비밀번호는 8자 이상, 숫자와 특수문자를 포함해야 합니다.</p>
+
+      <div class="modal-form">
+        <div class="modal-field">
+          <label for="currentPassword">현재 비밀번호</label>
+          <input
+            type="password"
+            id="currentPassword"
+            class="modal-input"
+            bind:value={currentPassword}
+            placeholder="현재 비밀번호"
+            disabled={passwordLoading}
+          />
+        </div>
+
+        <div class="modal-field">
+          <label for="newPassword">새 비밀번호</label>
+          <input
+            type="password"
+            id="newPassword"
+            class="modal-input"
+            bind:value={newPassword}
+            placeholder="새 비밀번호"
+            disabled={passwordLoading}
+          />
+          {#if newPassword}
+            <div class="password-strength">
+              <div class="strength-bar">
+                <div
+                  class="strength-fill"
+                  style="width: {passwordStrength.level * 33.33}%; background: {passwordStrength.color}"
+                ></div>
+              </div>
+              <span class="strength-label" style="color: {passwordStrength.color}">{passwordStrength.label}</span>
+            </div>
+          {/if}
+        </div>
+
+        <div class="modal-field">
+          <label for="confirmPassword">새 비밀번호 확인</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            class="modal-input"
+            bind:value={confirmPassword}
+            placeholder="새 비밀번호 확인"
+            disabled={passwordLoading}
+          />
+        </div>
+      </div>
+
+      {#if passwordError}
+        <p class="modal-error">{passwordError}</p>
+      {/if}
+
+      {#if passwordSuccess}
+        <p class="modal-success">{passwordSuccess}</p>
+      {/if}
+
+      <div class="modal-buttons">
+        <button class="modal-btn cancel" on:click={closePasswordModal} disabled={passwordLoading}>
+          취소
+        </button>
+        <button class="modal-btn primary" on:click={handleChangePassword} disabled={passwordLoading}>
+          {passwordLoading ? '변경 중...' : '변경하기'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- 프로필 수정 모달 -->
+{#if showProfileModal}
+  <div class="modal-backdrop" on:click={closeProfileModal} role="button" tabindex="-1" on:keydown={(e) => e.key === 'Escape' && closeProfileModal()}>
+    <div class="modal" on:click|stopPropagation role="dialog" aria-modal="true">
+      <h2 class="modal-title">프로필 수정</h2>
+
+      <div class="modal-form">
+        <div class="modal-field">
+          <label>성별</label>
+          <div class="radio-group">
+            {#each genderOptions as opt}
+              <label class="radio-option">
+                <input
+                  type="radio"
+                  name="gender"
+                  value={opt.value}
+                  bind:group={editGender}
+                  disabled={profileLoading}
+                />
+                <span class="radio-custom"></span>
+                <span>{opt.label}</span>
+              </label>
+            {/each}
+          </div>
+        </div>
+
+        <div class="modal-field">
+          <label>연령대</label>
+          <div class="select-wrapper">
+            <select bind:value={editAgeGroup} disabled={profileLoading}>
+              {#each ageGroupOptions as opt}
+                <option value={opt.value}>{opt.label}</option>
+              {/each}
+            </select>
+            <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {#if profileError}
+        <p class="modal-error">{profileError}</p>
+      {/if}
+
+      {#if profileSuccess}
+        <p class="modal-success">{profileSuccess}</p>
+      {/if}
+
+      <div class="modal-buttons">
+        <button class="modal-btn cancel" on:click={closeProfileModal} disabled={profileLoading}>
+          취소
+        </button>
+        <button class="modal-btn primary" on:click={handleUpdateProfile} disabled={profileLoading}>
+          {profileLoading ? '저장 중...' : '저장하기'}
         </button>
       </div>
     </div>
@@ -582,5 +893,179 @@
   .modal-btn.danger {
     background: var(--system-red);
     color: white;
+  }
+
+  .modal-btn.primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .modal-lg {
+    max-width: 380px;
+  }
+
+  .modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .modal-field label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-left: var(--space-1);
+  }
+
+  .modal-field .modal-input {
+    margin-bottom: 0;
+  }
+
+  .modal-success {
+    font-size: 14px;
+    color: var(--system-green);
+    text-align: center;
+    margin: 0 0 var(--space-4);
+  }
+
+  /* 비밀번호 강도 표시 */
+  .password-strength {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  .strength-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .strength-fill {
+    height: 100%;
+    transition: width 0.3s ease, background 0.3s ease;
+  }
+
+  .strength-label {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 32px;
+  }
+
+  /* 섹션 헤더 */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 var(--space-4);
+  }
+
+  .section-header .section-title {
+    padding-left: 0;
+  }
+
+  .edit-btn {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--space-1) var(--space-2);
+    transition: opacity var(--duration-fast) var(--ease);
+  }
+
+  .edit-btn:active {
+    opacity: 0.7;
+  }
+
+  /* 라디오 버튼 */
+  .radio-group {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-primary);
+  }
+
+  .radio-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .radio-custom {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-fast) var(--ease);
+  }
+
+  .radio-option input:checked + .radio-custom {
+    border-color: var(--accent);
+  }
+
+  .radio-option input:checked + .radio-custom::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* 셀렉트 박스 */
+  .select-wrapper {
+    position: relative;
+  }
+
+  .select-wrapper select {
+    width: 100%;
+    padding: var(--space-4);
+    padding-right: var(--space-10);
+    background: var(--bg-secondary);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 16px;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .select-wrapper select:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+
+  .select-chevron {
+    position: absolute;
+    right: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: var(--text-tertiary);
+    pointer-events: none;
   }
 </style>

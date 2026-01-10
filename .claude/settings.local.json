@@ -16,7 +16,15 @@
       "Bash(dir /b \"C:\\front\")",
       "WebSearch",
       "WebFetch(domain:www.learnui.design)",
-      "WebFetch(domain:www.privacy.go.kr)"
+      "WebFetch(domain:www.privacy.go.kr)",
+      "Bash(dir /s /b \"C:\\front\\news-briefing-frontend\")",
+      "Bash(cmd /c \"dir /s /b C:\\front\\news-briefing-frontend\\*logo*\")",
+      "Bash(npm install:*)",
+      "Bash(node convert-svg-to-png.mjs:*)",
+      "Bash(dir /b \"C:\\front\\news-briefing-frontend\\build\")",
+      "Bash(cmd /c \"dir /b C:\\front\\news-briefing-frontend\\android\\app\\src\\main\\assets\\public 2>nul\")",
+      "Bash(cmd /c \"dir /b C:\\front\\news-briefing-frontend\\build 2>nul\")",
+      "Bash(dir /b \"C:\\ToyProject\")"
     ],
     "deny": [],
     "ask": []

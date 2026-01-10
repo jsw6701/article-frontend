@@ -3,14 +3,17 @@
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
-  import { auth, isLoggedIn } from "$lib/stores/auth";
+  import { auth, isLoggedIn, currentUser } from "$lib/stores/auth";
   import { settings, currentStartPage } from "$lib/stores/settings";
   import ShiftLogo from "$lib/components/ShiftLogo.svelte";
+  import TermsAgreementModal from "$lib/components/TermsAgreementModal.svelte";
 
   let username = "";
   let password = "";
   let error = "";
   let loading = false;
+  let showTermsModal = false;
+  let pendingUserId: number | null = null;
 
   // 시작 페이지 경로 매핑
   const startPagePaths: Record<string, string> = {
@@ -24,7 +27,7 @@
     auth.init();
   });
 
-  $: if ($isLoggedIn) {
+  $: if ($isLoggedIn && !showTermsModal) {
     navigateToStartPage();
   }
 
@@ -53,11 +56,26 @@
     loading = false;
 
     if (result.success) {
-      // 로그인 성공 시 설정 불러오고 시작 페이지로 이동
-      await navigateToStartPage();
+      // 약관 동의가 필요한 경우 모달 표시
+      if (result.requiresTermsAgreement) {
+        const user = get(currentUser);
+        if (user) {
+          pendingUserId = user.userId;
+          showTermsModal = true;
+        }
+      } else {
+        // 로그인 성공 시 설정 불러오고 시작 페이지로 이동
+        await navigateToStartPage();
+      }
     } else {
       error = result.message;
     }
+  }
+
+  function handleTermsAgreed() {
+    showTermsModal = false;
+    pendingUserId = null;
+    navigateToStartPage();
   }
 </script>
 
@@ -92,6 +110,7 @@
         placeholder="비밀번호 입력"
         autocomplete="current-password"
       />
+      <a href="{base}/forgot-password" class="forgot-link">비밀번호를 잊으셨나요?</a>
     </div>
 
     {#if error}
@@ -107,7 +126,19 @@
     <span>계정이 없으신가요?</span>
     <a href="{base}/signup">회원가입</a>
   </div>
+
+  <div class="footer-extra">
+    <a href="{base}/find-username">아이디 찾기</a>
+  </div>
 </div>
+
+{#if showTermsModal && pendingUserId}
+  <TermsAgreementModal
+    userId={pendingUserId}
+    show={showTermsModal}
+    on:agreed={handleTermsAgreed}
+  />
+{/if}
 
 <style>
   .page {
@@ -210,5 +241,32 @@
     color: var(--accent);
     font-weight: 600;
     margin-left: var(--space-2);
+  }
+
+  .forgot-link {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    text-align: right;
+    padding-right: var(--space-1);
+    transition: color var(--duration-fast) var(--ease);
+  }
+
+  .forgot-link:hover {
+    color: var(--accent);
+  }
+
+  .footer-extra {
+    text-align: center;
+    font-size: 14px;
+    margin-top: calc(-1 * var(--space-4));
+  }
+
+  .footer-extra a {
+    color: var(--text-tertiary);
+    transition: color var(--duration-fast) var(--ease);
+  }
+
+  .footer-extra a:hover {
+    color: var(--accent);
   }
 </style>

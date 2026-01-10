@@ -72,11 +72,82 @@ function getAccessToken(): string | null {
   }
 }
 
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const user = JSON.parse(stored);
+    return user?.refreshToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function updateTokens(accessToken: string, refreshToken: string) {
+  if (typeof window === "undefined") return;
+  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!stored) return;
+  try {
+    const user = JSON.parse(stored);
+    user.accessToken = accessToken;
+    user.refreshToken = refreshToken;
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  } catch {
+    // ignore
+  }
+}
+
 function clearAuth() {
   if (typeof window !== "undefined") {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     window.dispatchEvent(new CustomEvent("auth:expired"));
   }
+}
+
+// 토큰 갱신 중인지 추적
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefreshToken(): Promise<boolean> {
+  // 이미 갱신 중이면 기존 Promise 재사용
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refreshTokenValue = getRefreshToken();
+  if (!refreshTokenValue) {
+    return false;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refreshTokenValue }),
+      });
+
+      if (!res.ok) {
+        return false;
+      }
+
+      const data = await res.json();
+      if (data.success && data.accessToken && data.refreshToken) {
+        updateTokens(data.accessToken, data.refreshToken);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 function qs(params: Record<string, string | number | boolean | undefined | null>) {
@@ -89,7 +160,7 @@ function qs(params: Record<string, string | number | boolean | undefined | null>
   return s ? `?${s}` : "";
 }
 
-async function http<T>(path: string, init?: RequestInit, requireAuth = false): Promise<T> {
+async function http<T>(path: string, init?: RequestInit, requireAuth = false, retried = false): Promise<T> {
   const headers: Record<string, string> = { ...(init?.headers as Record<string, string> ?? {}) };
 
   // 인증이 필요한 요청에 토큰 자동 추가
@@ -105,8 +176,14 @@ async function http<T>(path: string, init?: RequestInit, requireAuth = false): P
     headers,
   });
 
-  // 401 Unauthorized - 로그아웃 처리
-  if (res.status === 401 && requireAuth) {
+  // 401 Unauthorized - 토큰 갱신 시도 후 재요청
+  if (res.status === 401 && requireAuth && !retried) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      // 토큰 갱신 성공 - 요청 재시도
+      return http<T>(path, init, requireAuth, true);
+    }
+    // 토큰 갱신 실패 - 로그아웃
     clearAuth();
     throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
   }
@@ -220,6 +297,85 @@ export function logout(userId: number) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId }),
+  });
+}
+
+// ========== Password Reset API ==========
+
+export interface PasswordResetEmailRequest {
+  email: string;
+}
+
+export interface PasswordResetEmailResponse {
+  success: boolean;
+  message?: string;
+  expireMinutes?: number;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  message?: string;
+}
+
+export function sendPasswordResetEmail(request: PasswordResetEmailRequest) {
+  return http<PasswordResetEmailResponse>("/api/auth/password/send-reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
+export function resetPassword(request: ResetPasswordRequest) {
+  return http<ResetPasswordResponse>("/api/auth/password/reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
+// ========== Terms Agreement API ==========
+
+export interface TermsAgreementRequest {
+  userId: number;
+}
+
+export interface TermsAgreementResponse {
+  success: boolean;
+  message?: string;
+}
+
+export function agreeToTerms(request: TermsAgreementRequest) {
+  return http<TermsAgreementResponse>("/api/auth/terms/agree", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
+// ========== Find Username API ==========
+
+export interface FindUsernameRequest {
+  email: string;
+  code: string;
+}
+
+export interface FindUsernameResponse {
+  success: boolean;
+  username?: string;
+  message?: string;
+}
+
+export function findUsername(request: FindUsernameRequest) {
+  return http<FindUsernameResponse>("/api/auth/find-username", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
   });
 }
 
@@ -351,5 +507,45 @@ export function deleteMyAccount(password: string) {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password }),
+  }, true);
+}
+
+// ========== Password Change API ==========
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+export function changePassword(request: ChangePasswordRequest) {
+  return http<ChangePasswordResponse>("/api/users/me/password", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  }, true);
+}
+
+// ========== Profile Update API ==========
+
+export interface UpdateProfileRequest {
+  gender: string;
+  ageGroup: string;
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+  message: string;
+}
+
+export function updateProfile(request: UpdateProfileRequest) {
+  return http<UpdateProfileResponse>("/api/users/me/profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
   }, true);
 }

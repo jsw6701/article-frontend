@@ -29,7 +29,7 @@ function createAuthStore() {
       set(stored);
     },
 
-    async login(username: string, password: string): Promise<{ success: boolean; message: string }> {
+    async login(username: string, password: string): Promise<{ success: boolean; message: string; requiresTermsAgreement?: boolean }> {
       try {
         const res = await apiLogin({ username, password });
         if (res.success && res.accessToken && res.refreshToken && res.userId && res.username && res.role) {
@@ -42,7 +42,11 @@ function createAuthStore() {
           };
           set(user);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-          return { success: true, message: "로그인 성공" };
+          return {
+            success: true,
+            message: "로그인 성공",
+            requiresTermsAgreement: res.requiresTermsAgreement ?? false
+          };
         }
         return { success: false, message: res.message ?? "로그인 실패" };
       } catch (e) {

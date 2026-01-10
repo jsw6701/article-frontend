@@ -71,7 +71,7 @@
   /**
    * 텍스트를 문단 배열로 분리
    * - 기존 줄바꿈(\n\n)이 있으면 그대로 사용
-   * - 없으면 문장 단위로 2-3문장씩 그룹화하여 문단 생성
+   * - 없으면 문장 단위로 분리하여 적절히 그룹화
    */
   function splitIntoParagraphs(text: string | undefined): string[] {
     if (!text) return [];
@@ -88,26 +88,28 @@
       return trimmed.split(/\n+/).map(p => p.trim()).filter(p => p);
     }
 
-    // 문장 분리 (마침표, 물음표, 느낌표 기준)
-    // 단, 숫자 뒤의 마침표(예: 1.5%)는 분리하지 않음
+    // 한글 문장 분리 (더 정확한 패턴)
+    // - 마침표/물음표/느낌표 뒤에 공백이 오는 경우 분리
+    // - 단, 숫자.숫자 (예: 1.5%), 영문 약어 (예: U.S.) 는 제외
     const sentences = trimmed
-      .split(/(?<=[.!?])(?=\s+[가-힣A-Z])/)
+      .split(/(?<=[다요죠음임함됨됩니까][\.\?!])\s+/)
+      .flatMap(s => s.split(/(?<=[^0-9])[\.\?!]\s+(?=[가-힣])/))
       .map(s => s.trim())
-      .filter(s => s);
+      .filter(s => s.length > 0);
 
-    // 문장이 3개 이하면 그냥 하나의 문단으로
-    if (sentences.length <= 3) {
+    // 문장이 2개 이하면 그냥 하나의 문단으로
+    if (sentences.length <= 2) {
       return [trimmed];
     }
 
-    // 문장이 많으면 2-3문장씩 그룹화
+    // 긴 텍스트면 3문장씩 그룹화하여 자연스러운 문단 생성
     const paragraphs: string[] = [];
     let current: string[] = [];
+    const SENTENCES_PER_PARAGRAPH = 3;
 
     sentences.forEach((sentence, i) => {
       current.push(sentence);
-      // 2문장마다 또는 마지막 문장에서 문단 생성
-      if (current.length >= 2 || i === sentences.length - 1) {
+      if (current.length >= SENTENCES_PER_PARAGRAPH || i === sentences.length - 1) {
         paragraphs.push(current.join(' '));
         current = [];
       }
@@ -450,12 +452,13 @@
   .section p {
     font-size: 17px;
     color: var(--text-primary);
-    line-height: 1.7;
+    line-height: 1.8;  /* 가독성 향상: 1.7 → 1.8 */
     margin: 0;
+    word-break: keep-all;  /* 한글 단어 단위 줄바꿈 */
   }
 
   .section p + p {
-    margin-top: var(--space-4);
+    margin-top: var(--space-5);  /* 문단 간격 확대: 16px → 20px */
   }
 
   .section.highlight {
@@ -469,7 +472,8 @@
   .lead {
     font-size: 18px;
     font-weight: 500;
-    line-height: 1.6;
+    line-height: 1.75;  /* 가독성 향상 */
+    word-break: keep-all;
   }
 
   .section.action {
