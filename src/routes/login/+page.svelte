@@ -15,6 +15,7 @@
   let loading = false;
   let showTermsModal = false;
   let pendingUserId: number | null = null;
+  let loginInProgress = false; // 로그인 처리 중 플래그
 
   // 시작 페이지 경로 매핑
   const startPagePaths: Record<string, string> = {
@@ -23,14 +24,14 @@
     trending: '/trending'
   };
 
-  // 이미 로그인된 경우 시작 페이지로 리다이렉트
+  // 이미 로그인된 경우 시작 페이지로 리다이렉트 (로그인 처리 중이 아닐 때만)
   onMount(() => {
     auth.init();
+    // 이미 로그인된 상태로 페이지 진입 시에만 리다이렉트
+    if ($isLoggedIn) {
+      navigateToStartPage();
+    }
   });
-
-  $: if ($isLoggedIn && !showTermsModal) {
-    navigateToStartPage();
-  }
 
   async function navigateToStartPage() {
     // 서버에서 설정을 불러온 후 시작 페이지로 이동
@@ -63,11 +64,12 @@
         if (user) {
           pendingUserId = user.userId;
           showTermsModal = true;
+          // 모달이 표시된 상태이므로 여기서 리턴 (navigateToStartPage 호출 안 함)
+          return;
         }
-      } else {
-        // 로그인 성공 시 설정 불러오고 시작 페이지로 이동
-        await navigateToStartPage();
       }
+      // 약관 동의 필요 없으면 바로 이동
+      await navigateToStartPage();
     } else {
       error = result.message;
     }

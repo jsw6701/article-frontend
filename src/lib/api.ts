@@ -35,6 +35,85 @@ import type {
 } from "./types";
 import { Capacitor } from "@capacitor/core";
 
+// ========== Error Types ==========
+
+export type ApiErrorType =
+  | 'NETWORK_ERROR'      // 네트워크 연결 실패
+  | 'TIMEOUT'            // 요청 시간 초과
+  | 'SERVER_ERROR'       // 500번대 서버 에러
+  | 'AUTH_ERROR'         // 401/403 인증 에러
+  | 'NOT_FOUND'          // 404
+  | 'VALIDATION_ERROR'   // 400 유효성 검사 실패
+  | 'UNKNOWN';           // 기타
+
+export class ApiError extends Error {
+  type: ApiErrorType;
+  status?: number;
+  retryable: boolean;
+
+  constructor(message: string, type: ApiErrorType, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.type = type;
+    this.status = status;
+    this.retryable = type === 'NETWORK_ERROR' || type === 'TIMEOUT' || type === 'SERVER_ERROR';
+  }
+}
+
+// 에러 타입 판별
+function classifyError(error: unknown, status?: number): ApiError {
+  // fetch 실패 (네트워크 에러)
+  if (error instanceof TypeError && error.message.includes('fetch')) {
+    return new ApiError('네트워크 연결을 확인해주세요.', 'NETWORK_ERROR');
+  }
+
+  // AbortError (타임아웃)
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return new ApiError('요청 시간이 초과되었습니다.', 'TIMEOUT');
+  }
+
+  // HTTP 상태 코드 기반
+  if (status) {
+    if (status === 401 || status === 403) {
+      return new ApiError('인증이 필요합니다.', 'AUTH_ERROR', status);
+    }
+    if (status === 404) {
+      return new ApiError('요청한 리소스를 찾을 수 없습니다.', 'NOT_FOUND', status);
+    }
+    if (status === 400) {
+      return new ApiError('잘못된 요청입니다.', 'VALIDATION_ERROR', status);
+    }
+    if (status >= 500) {
+      return new ApiError('서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.', 'SERVER_ERROR', status);
+    }
+  }
+
+  // 기타 에러
+  const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+  return new ApiError(message, 'UNKNOWN', status);
+}
+
+// 온라인 상태 확인
+export function isOnline(): boolean {
+  return typeof navigator !== 'undefined' ? navigator.onLine : true;
+}
+
+// 온라인 상태 변경 리스너
+export function onOnlineStatusChange(callback: (online: boolean) => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  const handleOnline = () => callback(true);
+  const handleOffline = () => callback(false);
+
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+
+  return () => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+  };
+}
+
 /**
  * API Base URL을 동적으로 결정
  * 1. 환경변수 VITE_API_BASE가 설정되어 있으면 사용
@@ -160,7 +239,15 @@ function qs(params: Record<string, string | number | boolean | undefined | null>
   return s ? `?${s}` : "";
 }
 
+// 요청 타임아웃 (15초)
+const REQUEST_TIMEOUT = 15000;
+
 async function http<T>(path: string, init?: RequestInit, requireAuth = false, retried = false): Promise<T> {
+  // 오프라인 상태 체크
+  if (!isOnline()) {
+    throw new ApiError('인터넷에 연결되어 있지 않습니다.', 'NETWORK_ERROR');
+  }
+
   const headers: Record<string, string> = { ...(init?.headers as Record<string, string> ?? {}) };
 
   // 인증이 필요한 요청에 토큰 자동 추가
@@ -171,10 +258,23 @@ async function http<T>(path: string, init?: RequestInit, requireAuth = false, re
     }
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers,
-  });
+  // AbortController로 타임아웃 구현
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw classifyError(error);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   // 401 Unauthorized - 토큰 갱신 시도 후 재요청
   if (res.status === 401 && requireAuth && !retried) {
@@ -185,14 +285,51 @@ async function http<T>(path: string, init?: RequestInit, requireAuth = false, re
     }
     // 토큰 갱신 실패 - 로그아웃
     clearAuth();
-    throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
+    throw new ApiError("인증이 만료되었습니다. 다시 로그인해주세요.", 'AUTH_ERROR', 401);
   }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
+    // 서버에서 보낸 에러 메시지 파싱 시도
+    let serverMessage = "";
+    try {
+      const errorJson = JSON.parse(text);
+      serverMessage = errorJson.message || errorJson.error || "";
+    } catch {
+      serverMessage = text;
+    }
+
+    const error = classifyError(null, res.status);
+    if (serverMessage) {
+      error.message = serverMessage;
+    }
+    throw error;
   }
   return (await res.json()) as T;
+}
+
+// 재시도 가능한 요청 래퍼
+export async function httpWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 2,
+  delayMs = 1000
+): Promise<T> {
+  let lastError: ApiError | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error instanceof ApiError && error.retryable && attempt < maxRetries) {
+        lastError = error;
+        await new Promise(resolve => setTimeout(resolve, delayMs * (attempt + 1)));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError || new ApiError('요청에 실패했습니다.', 'UNKNOWN');
 }
 
 export function listCards(opts: {

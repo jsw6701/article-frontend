@@ -2,6 +2,8 @@
   import { base } from '$app/paths';
   import { createEventDispatcher } from 'svelte';
   import { agreeToTerms } from '$lib/api';
+  import { Capacitor } from '@capacitor/core';
+  import { Browser } from '@capacitor/browser';
 
   export let userId: number;
   export let show = false;
@@ -17,6 +19,22 @@
   let error = '';
 
   $: canSubmit = agreeTerms && agreePrivacy && !loading;
+
+  // 외부 브라우저로 링크 열기 (앱 내 이동 방지)
+  async function openLink(e: MouseEvent, path: string) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const fullUrl = window.location.origin + base + path;
+
+    if (Capacitor.isNativePlatform()) {
+      // 네이티브 앱에서는 외부 브라우저로 열기
+      await Browser.open({ url: fullUrl });
+    } else {
+      // 웹에서는 새 탭으로 열기
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    }
+  }
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -57,7 +75,7 @@
             <input type="checkbox" bind:checked={agreeTerms} />
             <span class="checkbox-custom"></span>
             <span class="agreement-text">
-              <a href="{base}/terms" target="_blank" rel="noopener noreferrer">서비스 이용약관</a>
+              <button type="button" class="link-btn" on:click={(e) => openLink(e, '/terms')}>서비스 이용약관</button>
               <span class="required">(필수)</span>
             </span>
           </label>
@@ -68,7 +86,7 @@
             <input type="checkbox" bind:checked={agreePrivacy} />
             <span class="checkbox-custom"></span>
             <span class="agreement-text">
-              <a href="{base}/privacy" target="_blank" rel="noopener noreferrer">개인정보처리방침</a>
+              <button type="button" class="link-btn" on:click={(e) => openLink(e, '/privacy')}>개인정보처리방침</button>
               <span class="required">(필수)</span>
             </span>
           </label>
@@ -206,10 +224,15 @@
     line-height: 1.4;
   }
 
-  .agreement-text a {
+  .agreement-text .link-btn {
     color: var(--accent);
     text-decoration: underline;
     text-underline-offset: 2px;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
   }
 
   .required {

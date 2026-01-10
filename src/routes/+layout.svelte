@@ -8,6 +8,8 @@
   import { auth, isLoggedIn, currentUser, isAdmin } from '$lib/stores/auth';
   import { settings, currentStartPage } from '$lib/stores/settings';
   import ShiftLogo from '$lib/components/ShiftLogo.svelte';
+  import AppUpdateBanner from '$lib/components/AppUpdateBanner.svelte';
+  import OfflineBanner from '$lib/components/OfflineBanner.svelte';
 
   // 인증 불필요한 페이지
   const publicPaths = ['/login', '/signup', '/privacy', '/terms', '/forgot-password', '/find-username'];
@@ -83,6 +85,12 @@
 
   $: currentPath = $page.url.pathname;
 
+  // 로그인 페이지에서는 탭바 숨김
+  $: hideTabBar = publicPaths.some(p => {
+    const normalizedPath = currentPath.replace(base, '') || '/';
+    return normalizedPath.startsWith(p);
+  });
+
   function isActive(path: string): boolean {
     if (path === '/') {
       return currentPath === '/' || currentPath === base + '/';
@@ -116,13 +124,17 @@
 
 </script>
 
+<AppUpdateBanner />
+<OfflineBanner />
+
 <div class="app">
   <!-- 메인 컨텐츠 -->
-  <main class="main">
+  <main class="main" class:no-tabbar={hideTabBar}>
     <slot />
   </main>
 
-  <!-- 하단 탭바 - iOS 스타일 -->
+  <!-- 하단 탭바 - iOS 스타일 (로그인/회원가입 등 공개 페이지에서는 숨김) -->
+  {#if !hideTabBar}
   <nav class="tab-bar">
     {#each visibleItems as item (item.path)}
       <a
@@ -165,6 +177,7 @@
       </a>
     {/each}
   </nav>
+  {/if}
 </div>
 
 <style>
@@ -192,6 +205,10 @@
     flex: 1;
     padding: var(--space-4);
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .main.no-tabbar {
+    padding-bottom: var(--space-4);
   }
 
   /* 탭바 - iOS 스타일 */
@@ -269,6 +286,10 @@
     .main {
       padding: var(--space-3);
       padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .main.no-tabbar {
+      padding-bottom: var(--space-3);
     }
 
     .tab-bar {

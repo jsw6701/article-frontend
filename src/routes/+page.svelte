@@ -2,36 +2,59 @@
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import type { CardListItem, TrendingItem, PopularCard } from "$lib/types";
-  import { listCards, getTrending, getPopularCards } from "$lib/api";
+  import { listCards, getTrending, getPopularCards, ApiError, type ApiErrorType } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
   import { isLoggedIn } from "$lib/stores/auth";
   import LifecycleBadge from "$lib/components/LifecycleBadge.svelte";
+  import NetworkError from "$lib/components/NetworkError.svelte";
 
   let cards: CardListItem[] = [];
   let trends: TrendingItem[] = [];
   let popular: PopularCard[] = [];
   let loading = true;
+  let retrying = false;
+
+  // 에러 상태
+  let error: { type: ApiErrorType; message: string; retryable: boolean } | null = null;
 
   // 탭 상태: 'trend' | 'popular'
   let activeTab: 'trend' | 'popular' = 'trend';
 
+  async function loadData() {
+    loading = true;
+    error = null;
+
+    try {
+      const [cardsRes, trendingRes, popularRes] = await Promise.all([
+        listCards({ limit: 3, offset: 0 }),
+        getTrending({ limit: 5 }),
+        getPopularCards({ limit: 5 })
+      ]);
+      cards = cardsRes.items;
+      trends = trendingRes.items;
+      popular = popularRes.items;
+    } catch (e) {
+      console.error(e);
+      if (e instanceof ApiError) {
+        error = { type: e.type, message: e.message, retryable: e.retryable };
+      } else {
+        error = { type: 'UNKNOWN', message: '데이터를 불러오는데 실패했습니다.', retryable: true };
+      }
+    } finally {
+      loading = false;
+      retrying = false;
+    }
+  }
+
+  async function handleRetry() {
+    retrying = true;
+    await loadData();
+  }
+
   onMount(() => {
     const unsubscribe = isLoggedIn.subscribe(async (loggedIn) => {
       if (loggedIn) {
-        try {
-          const [cardsRes, trendingRes, popularRes] = await Promise.all([
-            listCards({ limit: 3, offset: 0 }),
-            getTrending({ limit: 5 }),
-            getPopularCards({ limit: 5 })
-          ]);
-          cards = cardsRes.items;
-          trends = trendingRes.items;
-          popular = popularRes.items;
-        } catch (e) {
-          console.error(e);
-        } finally {
-          loading = false;
-        }
+        await loadData();
         unsubscribe();
       }
     });
@@ -61,6 +84,14 @@
   <div class="loading">
     <div class="spinner"></div>
   </div>
+{:else if error}
+  <NetworkError
+    errorType={error.type}
+    message={error.message}
+    retryable={error.retryable}
+    loading={retrying}
+    on:retry={handleRetry}
+  />
 {:else}
   <div class="home">
     <!-- 헤더 -->

@@ -3,6 +3,9 @@
 ## Project Overview
 SHIFT - 뉴스 브리핑 프론트엔드 앱 (SvelteKit 기반)
 
+## Related Projects
+- **백엔드**: `C:\ToyProject\article` (Spring Boot 기반 API 서버)
+
 ## Design System
 
 ### Design Guide
