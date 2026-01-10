@@ -1,19 +1,26 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { onMount, onDestroy } from 'svelte';
-  import type { CardListItem } from "$lib/types";
-  import { listCards } from "$lib/api";
+  import type { CardListItem, IssueGroup } from "$lib/types";
+  import { listCards, ApiError, type ApiErrorType } from "$lib/api";
   import { getGroupLabel, formatViewCount } from "$lib/utils/labels";
   import { isLoggedIn } from "$lib/stores/auth";
   import LifecycleBadge from "$lib/components/LifecycleBadge.svelte";
+  import Skeleton from "$lib/components/Skeleton.svelte";
+  import NetworkError from "$lib/components/NetworkError.svelte";
+  import FilterChips from "$lib/components/FilterChips.svelte";
 
   let items: CardListItem[] = [];
   let loading = true;
   let loadingMore = false;
-  let error: string | null = null;
+  let retrying = false;
+  let error: { type: ApiErrorType; message: string; retryable: boolean } | null = null;
   let hasMore = true;
   let offset = 0;
   const LIMIT = 10;
+
+  // 필터 상태
+  let selectedGroup: IssueGroup | null = null;
 
   let sentinel: HTMLDivElement;
   let observer: IntersectionObserver | null = null;
@@ -23,6 +30,7 @@
 
     if (isInitial) {
       loading = true;
+      error = null;
       offset = 0;
       items = [];
     } else {
@@ -30,7 +38,11 @@
     }
 
     try {
-      const res = await listCards({ limit: LIMIT, offset });
+      const res = await listCards({
+        limit: LIMIT,
+        offset,
+        group: selectedGroup ?? undefined
+      });
       if (isInitial) {
         items = res.items;
       } else {
@@ -38,12 +50,29 @@
       }
       offset += res.items.length;
       hasMore = res.items.length === LIMIT;
-    } catch (e: any) {
-      error = e?.message ?? "불러오기 실패";
+    } catch (e) {
+      console.error(e);
+      if (e instanceof ApiError) {
+        error = { type: e.type, message: e.message, retryable: e.retryable };
+      } else {
+        error = { type: 'UNKNOWN', message: '데이터를 불러오는데 실패했습니다.', retryable: true };
+      }
     } finally {
       loading = false;
       loadingMore = false;
+      retrying = false;
     }
+  }
+
+  async function handleRetry() {
+    retrying = true;
+    await loadCards(true);
+  }
+
+  function handleFilterChange(event: CustomEvent<IssueGroup | null>) {
+    selectedGroup = event.detail;
+    hasMore = true;
+    loadCards(true);
   }
 
   onMount(() => {
@@ -54,7 +83,7 @@
         // IntersectionObserver 설정
         observer = new IntersectionObserver(
           (entries) => {
-            if (entries[0].isIntersecting && hasMore && !loadingMore) {
+            if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
               loadCards();
             }
           },
@@ -101,26 +130,49 @@
     <p class="subtitle">모든 브리핑 카드</p>
   </header>
 
+  <!-- 필터 -->
+  <FilterChips {selectedGroup} on:change={handleFilterChange} />
+
   {#if loading}
-    <div class="loading">
-      <div class="spinner"></div>
+    <!-- 스켈레톤 로더 -->
+    <div class="cards">
+      {#each Array(5) as _}
+        <Skeleton type="card" />
+      {/each}
     </div>
   {:else if error}
-    <div class="message-box">
-      <p>{error}</p>
-      <button class="action-btn" on:click={() => location.reload()}>다시 시도</button>
-    </div>
+    <NetworkError
+      errorType={error.type}
+      message={error.message}
+      retryable={error.retryable}
+      loading={retrying}
+      on:retry={handleRetry}
+    />
   {:else if items.length === 0}
     <div class="message-box">
-      <p>브리핑 카드가 없습니다</p>
+      <div class="empty-icon">📭</div>
+      <p>
+        {#if selectedGroup}
+          '{getGroupLabel(selectedGroup)}' 카테고리에 브리핑이 없습니다
+        {:else}
+          브리핑 카드가 없습니다
+        {/if}
+      </p>
+      {#if selectedGroup}
+        <button class="action-btn" on:click={() => { selectedGroup = null; loadCards(true); }}>
+          전체 보기
+        </button>
+      {/if}
     </div>
   {:else}
     <div class="cards">
-      {#each items as item}
+      {#each items as item (item.issueId)}
         <a href="{base}/cards/{item.issueId}" class="card">
           <div class="card-header">
             <div class="card-meta">
-              <span class="card-category">{getGroupLabel(item.issueGroup)}</span>
+              <span class="card-category" style="color: var(--g-{item.issueGroup.toLowerCase()})">
+                {getGroupLabel(item.issueGroup)}
+              </span>
               {#if item.lifecycle}
                 <LifecycleBadge lifecycle={item.lifecycle} showChange={true} />
               {/if}
@@ -161,7 +213,7 @@
   .page {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-4);
   }
 
   .header {
@@ -182,37 +234,23 @@
     margin: var(--space-1) 0 0;
   }
 
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 40vh;
-  }
-
-  .spinner {
-    width: 24px;
-    height: 24px;
-    border: 2.5px solid var(--separator);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
   .message-box {
     background: var(--card);
     border-radius: var(--radius-lg);
-    padding: var(--space-6);
+    padding: var(--space-7) var(--space-6);
     text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: var(--space-3);
   }
 
   .message-box p {
     color: var(--text-secondary);
     font-size: 16px;
     margin: 0;
+    line-height: 1.5;
   }
 
   .action-btn {
@@ -223,6 +261,10 @@
     font-size: 15px;
     font-weight: 600;
     border-radius: var(--radius);
+  }
+
+  .action-btn:active {
+    opacity: 0.8;
   }
 
   .cards {
@@ -258,7 +300,6 @@
   .card-category {
     font-size: 13px;
     font-weight: 600;
-    color: var(--accent);
   }
 
   .card-time {
@@ -309,6 +350,19 @@
   .loading-more {
     display: flex;
     justify-content: center;
+  }
+
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 2.5px solid var(--separator);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   .end-message {

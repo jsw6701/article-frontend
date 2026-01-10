@@ -7,6 +7,7 @@
   import { get } from 'svelte/store';
   import { auth, isLoggedIn, currentUser, isAdmin } from '$lib/stores/auth';
   import { settings, currentStartPage } from '$lib/stores/settings';
+  import { pushNotification } from '$lib/stores/pushNotification';
   import ShiftLogo from '$lib/components/ShiftLogo.svelte';
   import AppUpdateBanner from '$lib/components/AppUpdateBanner.svelte';
   import OfflineBanner from '$lib/components/OfflineBanner.svelte';
@@ -52,6 +53,9 @@
           goto(`${base}${targetPath}`, { replaceState: true });
         }
       }
+
+      // 푸시 알림 초기화 (로그인 상태에서만)
+      await pushNotification.init();
     }
 
     // 401 에러 시 로그인 페이지로 이동

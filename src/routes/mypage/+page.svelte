@@ -2,9 +2,11 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
+  import { Capacitor } from '@capacitor/core';
   import { getMyProfile, deleteMyAccount, changePassword, updateProfile } from '$lib/api';
   import { auth, currentUser } from '$lib/stores/auth';
   import { settings, type FontSize, type StartPage } from '$lib/stores/settings';
+  import { pushNotification, pushSettings, type PushSettings } from '$lib/stores/pushNotification';
   import { getAgeGroupLabel, getGenderLabel } from '$lib/utils/labels';
   import type { MyProfile, Gender, AgeGroup } from '$lib/types';
 
@@ -61,7 +63,14 @@
   let profileError = '';
   let profileSuccess = '';
 
+  // 푸시 알림 상태
+  let isNative = false;
+  let pushLoading = false;
+
   onMount(async () => {
+    // 네이티브 플랫폼 체크
+    isNative = Capacitor.isNativePlatform();
+
     if (!$currentUser) {
       loading = false;
       return;
@@ -76,6 +85,20 @@
       loading = false;
     }
   });
+
+  // 푸시 알림 토글 핸들러
+  async function handlePushToggle(enabled: boolean) {
+    pushLoading = true;
+    try {
+      await pushNotification.setEnabled(enabled);
+    } finally {
+      pushLoading = false;
+    }
+  }
+
+  async function handlePushSettingChange(key: keyof PushSettings, value: boolean) {
+    pushNotification.updateSettings({ [key]: value });
+  }
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr);
@@ -328,6 +351,87 @@
         </div>
       </div>
     </section>
+
+    <!-- 알림 설정 (네이티브 앱에서만 표시) -->
+    {#if isNative}
+    <section class="section">
+      <h3 class="section-title">알림 설정</h3>
+      <div class="group">
+        <div class="row">
+          <div class="row-content">
+            <span class="row-label">푸시 알림</span>
+            <span class="row-desc">앱 알림을 받습니다</span>
+          </div>
+          <button
+            class="toggle"
+            class:active={$pushSettings.enabled}
+            on:click={() => handlePushToggle(!$pushSettings.enabled)}
+            disabled={pushLoading}
+          >
+            <span class="toggle-knob"></span>
+          </button>
+        </div>
+
+        {#if $pushSettings.enabled}
+          <div class="row">
+            <div class="row-content">
+              <span class="row-label">속보 알림</span>
+              <span class="row-desc">중요한 경제 뉴스를 빠르게 알려드립니다</span>
+            </div>
+            <button
+              class="toggle"
+              class:active={$pushSettings.breakingNews}
+              on:click={() => handlePushSettingChange('breakingNews', !$pushSettings.breakingNews)}
+            >
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+
+          <div class="row">
+            <div class="row-content">
+              <span class="row-label">북마크 업데이트</span>
+              <span class="row-desc">저장한 이슈에 새 소식이 있을 때</span>
+            </div>
+            <button
+              class="toggle"
+              class:active={$pushSettings.bookmarkUpdates}
+              on:click={() => handlePushSettingChange('bookmarkUpdates', !$pushSettings.bookmarkUpdates)}
+            >
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+
+          <div class="row">
+            <div class="row-content">
+              <span class="row-label">급상승 이슈</span>
+              <span class="row-desc">실시간 인기 이슈가 등장했을 때</span>
+            </div>
+            <button
+              class="toggle"
+              class:active={$pushSettings.trendingAlerts}
+              on:click={() => handlePushSettingChange('trendingAlerts', !$pushSettings.trendingAlerts)}
+            >
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+
+          <div class="row">
+            <div class="row-content">
+              <span class="row-label">오늘의 브리핑</span>
+              <span class="row-desc">매일 아침 주요 경제 소식 요약</span>
+            </div>
+            <button
+              class="toggle"
+              class:active={$pushSettings.dailyBriefing}
+              on:click={() => handlePushSettingChange('dailyBriefing', !$pushSettings.dailyBriefing)}
+            >
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+        {/if}
+      </div>
+    </section>
+    {/if}
 
     <!-- 계정 정보 -->
     <section class="section">
@@ -710,9 +814,22 @@
     background: var(--bg-tertiary);
   }
 
+  .row-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+
   .row-label {
     font-size: 17px;
     color: var(--text-primary);
+  }
+
+  .row-desc {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
   }
 
   .row-label.logout {
@@ -764,6 +881,11 @@
 
   .toggle.active .toggle-knob {
     transform: translateX(20px);
+  }
+
+  .toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   /* 세그먼트 컨트롤 */

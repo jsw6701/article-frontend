@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "589756733752",
+    "project_id": "shift-7ec63",
+    "storage_bucket": "shift-7ec63.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589756733752:android:90c6f683cbfb8e423609cd",
+        "android_client_info": {
+          "package_name": "com.yourapp.briefing"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKsuXf6QwhU1nsch8PfMMEakexXrUpCaQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

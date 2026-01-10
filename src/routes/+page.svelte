@@ -7,6 +7,7 @@
   import { isLoggedIn } from "$lib/stores/auth";
   import LifecycleBadge from "$lib/components/LifecycleBadge.svelte";
   import NetworkError from "$lib/components/NetworkError.svelte";
+  import Skeleton from "$lib/components/Skeleton.svelte";
 
   let cards: CardListItem[] = [];
   let trends: TrendingItem[] = [];
@@ -81,8 +82,37 @@
 </script>
 
 {#if loading}
-  <div class="loading">
-    <div class="spinner"></div>
+  <div class="home">
+    <!-- 헤더 스켈레톤 -->
+    <header class="header">
+      <Skeleton type="custom" width="120px" height="32px" />
+      <div style="margin-top: 8px;">
+        <Skeleton type="custom" width="100px" height="16px" />
+      </div>
+    </header>
+
+    <!-- 실시간 순위 스켈레톤 -->
+    <section class="section">
+      <Skeleton type="custom" width="140px" height="36px" />
+      <div class="rank-list">
+        <Skeleton type="rank-item" />
+        <Skeleton type="rank-item" />
+        <Skeleton type="rank-item" />
+      </div>
+    </section>
+
+    <!-- 최신 브리핑 스켈레톤 -->
+    <section class="section">
+      <div class="section-header">
+        <Skeleton type="custom" width="100px" height="24px" />
+        <Skeleton type="custom" width="60px" height="16px" />
+      </div>
+      <div class="cards">
+        <Skeleton type="card" />
+        <Skeleton type="card" />
+        <Skeleton type="card" />
+      </div>
+    </section>
   </div>
 {:else if error}
   <NetworkError
@@ -205,22 +235,6 @@
 {/if}
 
 <style>
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-  }
-
-  .spinner {
-    width: 24px;
-    height: 24px;
-    border: 2.5px solid var(--separator);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
   .home {
     display: flex;
     flex-direction: column;

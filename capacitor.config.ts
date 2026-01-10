@@ -14,6 +14,9 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,  // 네이티브 HTTP 사용으로 CORS 우회
     },
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
   },
 };
 

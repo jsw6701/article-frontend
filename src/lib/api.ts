@@ -686,3 +686,77 @@ export function updateProfile(request: UpdateProfileRequest) {
     body: JSON.stringify(request),
   }, true);
 }
+
+// ========== Push Notification API ==========
+
+export interface PushTokenRequest {
+  token: string;
+  platform: 'android' | 'ios' | 'web';
+}
+
+export interface PushTokenResponse {
+  success: boolean;
+  message?: string;
+}
+
+export interface PushSettingsData {
+  enabled: boolean;
+  breakingNews: boolean;
+  bookmarkUpdates: boolean;
+  dailyBriefing: boolean;
+  trendingAlerts: boolean;
+}
+
+export interface PushSettingsResponse {
+  success: boolean;
+  data?: PushSettingsData;
+  message?: string;
+}
+
+// 푸시 토큰 등록
+export function registerPushToken(token: string) {
+  const platform = detectPlatform();
+  return http<PushTokenResponse>("/api/push/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, platform }),
+  }, true);
+}
+
+// 푸시 토큰 해제
+export function unregisterPushToken(token: string) {
+  return http<PushTokenResponse>("/api/push/token", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  }, true);
+}
+
+// 푸시 설정 조회
+export async function getPushSettings(): Promise<PushSettingsData | null> {
+  try {
+    const res = await http<PushSettingsResponse>("/api/push/settings", undefined, true);
+    return res.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// 푸시 설정 업데이트
+export function updatePushSettings(settings: PushSettingsData) {
+  return http<PushSettingsResponse>("/api/push/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  }, true);
+}
+
+// 플랫폼 감지
+function detectPlatform(): 'android' | 'ios' | 'web' {
+  if (typeof window === 'undefined') return 'web';
+
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (/android/.test(userAgent)) return 'android';
+  if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
+  return 'web';
+}
