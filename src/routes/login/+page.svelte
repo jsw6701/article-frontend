@@ -111,7 +111,12 @@
         placeholder="비밀번호 입력"
         autocomplete="current-password"
       />
-      <a href="{base}/forgot-password" class="forgot-link">비밀번호를 잊으셨나요?</a>
+    </div>
+
+    <div class="help-links">
+      <a href="{base}/find-username">아이디 찾기</a>
+      <span class="divider"></span>
+      <a href="{base}/forgot-password">비밀번호 찾기</a>
     </div>
 
     <div class="options-row">
@@ -136,10 +141,6 @@
   <div class="footer">
     <span>계정이 없으신가요?</span>
     <a href="{base}/signup">회원가입</a>
-  </div>
-
-  <div class="footer-extra">
-    <a href="{base}/find-username">아이디 찾기</a>
   </div>
 </div>
 
@@ -254,16 +255,28 @@
     margin-left: var(--space-2);
   }
 
-  .forgot-link {
+  .help-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-top: calc(-1 * var(--space-2));
+  }
+
+  .help-links a {
     font-size: 14px;
     color: var(--text-tertiary);
-    text-align: right;
-    padding-right: var(--space-1);
     transition: color var(--duration-fast) var(--ease);
   }
 
-  .forgot-link:hover {
+  .help-links a:hover {
     color: var(--accent);
+  }
+
+  .help-links .divider {
+    width: 1px;
+    height: 12px;
+    background: var(--border);
   }
 
   .options-row {
@@ -292,20 +305,5 @@
     font-size: 15px;
     color: var(--text-secondary);
     user-select: none;
-  }
-
-  .footer-extra {
-    text-align: center;
-    font-size: 14px;
-    margin-top: calc(-1 * var(--space-4));
-  }
-
-  .footer-extra a {
-    color: var(--text-tertiary);
-    transition: color var(--duration-fast) var(--ease);
-  }
-
-  .footer-extra a:hover {
-    color: var(--accent);
   }
 </style>
