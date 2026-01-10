@@ -10,7 +10,7 @@
   import ShiftLogo from '$lib/components/ShiftLogo.svelte';
 
   // 인증 불필요한 페이지
-  const publicPaths = ['/login', '/signup', '/privacy', '/terms'];
+  const publicPaths = ['/login', '/signup', '/privacy', '/terms', '/forgot-password', '/find-username'];
 
   let mounted = false;
   let initialRedirectDone = false;
@@ -27,14 +27,28 @@
     await settings.init();
     mounted = true;
 
-    // 로그인 상태이고 홈('/')에서 시작했을 때만 시작 페이지로 리다이렉트
+    // 저장된 인증 정보가 있으면 토큰 갱신 시도 (자동 로그인)
     const currentPath = window.location.pathname.replace(base, '') || '/';
-    if (get(isLoggedIn) && currentPath === '/' && !initialRedirectDone) {
-      const startPage = get(currentStartPage);
-      const targetPath = startPagePaths[startPage] || '/';
-      if (targetPath !== '/') {
-        initialRedirectDone = true;
-        goto(`${base}${targetPath}`, { replaceState: true });
+    const isPublicPage = publicPaths.some(p => currentPath.startsWith(p));
+
+    if (get(isLoggedIn)) {
+      // 앱 시작 시 토큰 갱신 시도
+      const refreshed = await auth.refresh();
+      if (!refreshed && !isPublicPage) {
+        // 토큰 갱신 실패 시 로그인 페이지로 이동
+        auth.clear();
+        goto(`${base}/login`);
+        return;
+      }
+
+      // 로그인 상태이고 홈('/')에서 시작했을 때만 시작 페이지로 리다이렉트
+      if (currentPath === '/' && !initialRedirectDone) {
+        const startPage = get(currentStartPage);
+        const targetPath = startPagePaths[startPage] || '/';
+        if (targetPath !== '/') {
+          initialRedirectDone = true;
+          goto(`${base}${targetPath}`, { replaceState: true });
+        }
       }
     }
 

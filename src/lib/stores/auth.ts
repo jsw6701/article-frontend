@@ -3,6 +3,7 @@ import type { AuthUser } from "../types";
 import { login as apiLogin, logout as apiLogout, refreshToken as apiRefresh } from "../api";
 
 const STORAGE_KEY = "auth_user";
+const REMEMBER_ME_KEY = "remember_me";
 
 function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
@@ -29,9 +30,9 @@ function createAuthStore() {
       set(stored);
     },
 
-    async login(username: string, password: string): Promise<{ success: boolean; message: string; requiresTermsAgreement?: boolean }> {
+    async login(username: string, password: string, rememberMe: boolean = false): Promise<{ success: boolean; message: string; requiresTermsAgreement?: boolean }> {
       try {
-        const res = await apiLogin({ username, password });
+        const res = await apiLogin({ username, password, rememberMe });
         if (res.success && res.accessToken && res.refreshToken && res.userId && res.username && res.role) {
           const user: AuthUser = {
             userId: res.userId,
@@ -42,6 +43,8 @@ function createAuthStore() {
           };
           set(user);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+          // 자동 로그인 설정 저장
+          localStorage.setItem(REMEMBER_ME_KEY, JSON.stringify(rememberMe));
           return {
             success: true,
             message: "로그인 성공",
@@ -65,11 +68,13 @@ function createAuthStore() {
       }
       set(null);
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(REMEMBER_ME_KEY);
     },
 
     clear() {
       set(null);
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(REMEMBER_ME_KEY);
     },
 
     async refresh(): Promise<boolean> {
@@ -102,6 +107,15 @@ function createAuthStore() {
     getAccessToken(): string | null {
       const stored = getStoredUser();
       return stored?.accessToken ?? null;
+    },
+
+    isRememberMe(): boolean {
+      if (typeof window === "undefined") return false;
+      try {
+        return JSON.parse(localStorage.getItem(REMEMBER_ME_KEY) || "false");
+      } catch {
+        return false;
+      }
     },
   };
 }

@@ -10,6 +10,7 @@
 
   let username = "";
   let password = "";
+  let rememberMe = false;
   let error = "";
   let loading = false;
   let showTermsModal = false;
@@ -52,7 +53,7 @@
     }
 
     loading = true;
-    const result = await auth.login(username, password);
+    const result = await auth.login(username, password, rememberMe);
     loading = false;
 
     if (result.success) {
@@ -111,6 +112,16 @@
         autocomplete="current-password"
       />
       <a href="{base}/forgot-password" class="forgot-link">비밀번호를 잊으셨나요?</a>
+    </div>
+
+    <div class="options-row">
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          bind:checked={rememberMe}
+        />
+        <span class="checkbox-text">자동 로그인</span>
+      </label>
     </div>
 
     {#if error}
@@ -253,6 +264,34 @@
 
   .forgot-link:hover {
     color: var(--accent);
+  }
+
+  .options-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .checkbox-text {
+    font-size: 15px;
+    color: var(--text-secondary);
+    user-select: none;
   }
 
   .footer-extra {
