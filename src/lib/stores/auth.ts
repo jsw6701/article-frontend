@@ -32,7 +32,9 @@ function createAuthStore() {
 
     async login(username: string, password: string, rememberMe: boolean = false): Promise<{ success: boolean; message: string; requiresTermsAgreement?: boolean }> {
       try {
+        console.log('[Auth] Calling apiLogin...');
         const res = await apiLogin({ username, password, rememberMe });
+        console.log('[Auth] apiLogin response:', res);
         if (res.success && res.accessToken && res.refreshToken && res.userId && res.username && res.role) {
           const user: AuthUser = {
             userId: res.userId,

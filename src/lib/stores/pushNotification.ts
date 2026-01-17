@@ -14,9 +14,13 @@ export interface PushSettings {
   trendingAlerts: boolean;    // 급상승 이슈 알림
 }
 
+export type PermissionStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
+
 export interface PushState {
   token: string | null;
   permissionGranted: boolean;
+  permissionStatus: PermissionStatus;  // 권한 상태 추적
+  serverRegistered: boolean;           // 서버 등록 상태 추적
   settings: PushSettings;
   initialized: boolean;
   error: string | null;
@@ -26,6 +30,8 @@ export interface PushState {
 
 const PUSH_SETTINGS_KEY = 'push_settings';
 const PUSH_TOKEN_KEY = 'push_token';
+const SERVER_REGISTERED_KEY = 'push_server_registered';
+const PUSH_CONSENT_KEY = 'push_consent_on_signup';
 
 const DEFAULT_SETTINGS: PushSettings = {
   enabled: true,
@@ -41,12 +47,16 @@ function createPushStore() {
   const initialState: PushState = {
     token: null,
     permissionGranted: false,
+    permissionStatus: 'unknown',
+    serverRegistered: false,
     settings: DEFAULT_SETTINGS,
     initialized: false,
     error: null,
   };
 
   const { subscribe, set, update } = writable<PushState>(initialState);
+
+  let listenersSetup = false;
 
   // 로컬 스토리지에서 설정 로드
   function loadSettings(): PushSettings {
@@ -81,6 +91,32 @@ function createPushStore() {
     return localStorage.getItem(PUSH_TOKEN_KEY);
   }
 
+  // 서버 등록 상태 저장
+  function saveServerRegistered(registered: boolean) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SERVER_REGISTERED_KEY, registered ? 'true' : 'false');
+  }
+
+  // 서버 등록 상태 로드
+  function loadServerRegistered(): boolean {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(SERVER_REGISTERED_KEY) === 'true';
+  }
+
+  // 회원가입 시 푸시 동의 여부 확인
+  function getSignupConsent(): boolean | null {
+    if (typeof window === 'undefined') return null;
+    const consent = localStorage.getItem(PUSH_CONSENT_KEY);
+    if (consent === null) return null;
+    return consent === 'true';
+  }
+
+  // 회원가입 시 푸시 동의 플래그 제거 (권한 요청 성공 후에만 호출)
+  function clearSignupConsent() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(PUSH_CONSENT_KEY);
+  }
+
   return {
     subscribe,
 
@@ -95,41 +131,81 @@ function createPushStore() {
       // 저장된 설정 로드
       const savedSettings = loadSettings();
       const savedToken = loadToken();
+      const savedServerRegistered = loadServerRegistered();
 
       update(s => ({
         ...s,
         settings: savedSettings,
         token: savedToken,
+        serverRegistered: savedServerRegistered,
       }));
 
-      // 권한 체크
-      const permStatus = await PushNotifications.checkPermissions();
-
-      if (permStatus.receive === 'granted') {
-        update(s => ({ ...s, permissionGranted: true }));
-        await this.register();
-      }
-
-      // 리스너 등록
+      // 리스너 먼저 등록 (토큰 수신을 위해)
       this.setupListeners();
+
+      // 권한 체크 및 요청
+      let permStatus = await PushNotifications.checkPermissions();
+      const status = permStatus.receive as PermissionStatus;
+      console.log('[Push] Permission status:', status);
+
+      update(s => ({ ...s, permissionStatus: status }));
+
+      if (status === 'granted') {
+        update(s => ({ ...s, permissionGranted: true }));
+        // 토큰이 없거나 서버 등록이 안 됐을 경우 register() 호출
+        if (!savedToken || !savedServerRegistered) {
+          await this.register();
+        }
+        // 권한이 이미 granted면 동의 플래그 제거
+        clearSignupConsent();
+      } else if (status === 'prompt') {
+        // 회원가입 시 푸시 알림 동의했는지 확인
+        const consentOnSignup = getSignupConsent();
+
+        if (consentOnSignup === true) {
+          // 동의한 경우에만 권한 요청
+          console.log('[Push] Requesting permission (signup consent)');
+          permStatus = await PushNotifications.requestPermissions();
+          const newStatus = permStatus.receive as PermissionStatus;
+          update(s => ({ ...s, permissionStatus: newStatus }));
+
+          if (newStatus === 'granted') {
+            update(s => ({ ...s, permissionGranted: true }));
+            await this.register();
+            // 권한 요청 성공 후에만 플래그 제거
+            clearSignupConsent();
+          } else if (newStatus === 'denied') {
+            // 권한 거부됨 - 플래그는 유지하여 나중에 설정에서 안내 가능
+            console.log('[Push] Permission denied by user');
+            update(s => ({ ...s, permissionGranted: false }));
+          }
+        }
+        // 동의하지 않은 경우 자동으로 권한 요청하지 않음
+        // 마이페이지에서 수동으로 활성화 가능
+      } else if (status === 'denied') {
+        update(s => ({ ...s, permissionGranted: false }));
+        console.log('[Push] Permission previously denied');
+      }
 
       update(s => ({ ...s, initialized: true }));
     },
 
     // 리스너 설정
     setupListeners() {
+      if (listenersSetup) return; // 중복 등록 방지
+      listenersSetup = true;
+
       // 등록 성공
       PushNotifications.addListener('registration', async (token: Token) => {
         console.log('[Push] Registration token:', token.value);
         saveToken(token.value);
         update(s => ({ ...s, token: token.value, error: null }));
 
-        // 서버에 토큰 등록 (API 호출)
-        try {
-          const { registerPushToken } = await import('$lib/api');
-          await registerPushToken(token.value);
-        } catch (e) {
-          console.error('[Push] Failed to register token to server:', e);
+        // 서버에 토큰 등록 (API 호출) - 실패 시 재시도
+        const success = await this.registerTokenToServer(token.value);
+        if (success) {
+          saveServerRegistered(true);
+          update(s => ({ ...s, serverRegistered: true }));
         }
       });
 
@@ -168,12 +244,16 @@ function createPushStore() {
 
       try {
         let permStatus = await PushNotifications.checkPermissions();
+        let status = permStatus.receive as PermissionStatus;
 
-        if (permStatus.receive === 'prompt') {
+        if (status === 'prompt') {
           permStatus = await PushNotifications.requestPermissions();
+          status = permStatus.receive as PermissionStatus;
         }
 
-        if (permStatus.receive === 'granted') {
+        update(s => ({ ...s, permissionStatus: status }));
+
+        if (status === 'granted') {
           update(s => ({ ...s, permissionGranted: true }));
           await this.register();
           return true;
@@ -188,15 +268,60 @@ function createPushStore() {
       }
     },
 
+    // 권한 상태 확인 (UI에서 사용)
+    async checkPermissionStatus(): Promise<PermissionStatus> {
+      if (!Capacitor.isNativePlatform()) {
+        return 'unknown';
+      }
+
+      try {
+        const permStatus = await PushNotifications.checkPermissions();
+        const status = permStatus.receive as PermissionStatus;
+        update(s => ({ ...s, permissionStatus: status, permissionGranted: status === 'granted' }));
+        return status;
+      } catch {
+        return 'unknown';
+      }
+    },
+
+    // 권한이 거부되었는지 확인
+    isPermissionDenied(): boolean {
+      const state = get({ subscribe });
+      return state.permissionStatus === 'denied';
+    },
+
     // 푸시 알림 등록
     async register() {
       if (!Capacitor.isNativePlatform()) return;
 
       try {
+        console.log('[Push] Calling PushNotifications.register()');
         await PushNotifications.register();
       } catch (e) {
         console.error('[Push] Registration error:', e);
         update(s => ({ ...s, error: '푸시 알림 등록에 실패했습니다.' }));
+      }
+    },
+
+    // 서버에 토큰 등록 (재시도 로직 포함)
+    async registerTokenToServer(token: string, retryCount = 0): Promise<boolean> {
+      const MAX_RETRIES = 3;
+      try {
+        const { registerPushToken } = await import('$lib/api');
+        await registerPushToken(token);
+        console.log('[Push] Token registered to server successfully');
+        return true;
+      } catch (e) {
+        console.error(`[Push] Failed to register token to server (attempt ${retryCount + 1}):`, e);
+        if (retryCount < MAX_RETRIES) {
+          // 지수 백오프로 재시도 (1초, 2초, 4초)
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.log(`[Push] Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return this.registerTokenToServer(token, retryCount + 1);
+        }
+        update(s => ({ ...s, error: '서버에 푸시 토큰 등록 실패' }));
+        return false;
       }
     },
 

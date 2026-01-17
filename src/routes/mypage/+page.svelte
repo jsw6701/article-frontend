@@ -6,7 +6,7 @@
   import { getMyProfile, deleteMyAccount, changePassword, updateProfile } from '$lib/api';
   import { auth, currentUser } from '$lib/stores/auth';
   import { settings, type FontSize, type StartPage } from '$lib/stores/settings';
-  import { pushNotification, pushSettings, type PushSettings } from '$lib/stores/pushNotification';
+  import { pushNotification, pushSettings, type PushSettings, type PermissionStatus } from '$lib/stores/pushNotification';
   import { getAgeGroupLabel, getGenderLabel } from '$lib/utils/labels';
   import type { MyProfile, Gender, AgeGroup } from '$lib/types';
 
@@ -66,10 +66,21 @@
   // 푸시 알림 상태
   let isNative = false;
   let pushLoading = false;
+  let permissionStatus: PermissionStatus = 'unknown';
+
+  // 푸시 알림 스토어 구독
+  let pushState: { permissionStatus: PermissionStatus; permissionGranted: boolean };
+  $: pushState = $pushNotification as { permissionStatus: PermissionStatus; permissionGranted: boolean };
+  $: permissionStatus = pushState?.permissionStatus || 'unknown';
 
   onMount(async () => {
     // 네이티브 플랫폼 체크
     isNative = Capacitor.isNativePlatform();
+
+    // 권한 상태 확인
+    if (isNative) {
+      await pushNotification.checkPermissionStatus();
+    }
 
     if (!$currentUser) {
       loading = false;
@@ -85,6 +96,9 @@
       loading = false;
     }
   });
+
+  // 푸시 알림 스토어 전체 구독
+  const pushNotification$ = pushNotification;
 
   // 푸시 알림 토글 핸들러
   async function handlePushToggle(enabled: boolean) {
@@ -357,22 +371,43 @@
     <section class="section">
       <h3 class="section-title">알림 설정</h3>
       <div class="group">
+        <!-- 권한 거부 안내 배너 -->
+        {#if permissionStatus === 'denied'}
+          <div class="permission-denied-banner">
+            <div class="banner-icon">
+              <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+                <path d="M12 9v4m0 4h.01M12 3l9.5 16.5H2.5L12 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="banner-content">
+              <span class="banner-title">알림 권한이 꺼져 있습니다</span>
+              <span class="banner-desc">기기 설정 > 앱 > SHIFT > 알림에서 권한을 허용해주세요</span>
+            </div>
+          </div>
+        {/if}
+
         <div class="row">
           <div class="row-content">
             <span class="row-label">푸시 알림</span>
-            <span class="row-desc">앱 알림을 받습니다</span>
+            <span class="row-desc">
+              {#if permissionStatus === 'denied'}
+                기기 설정에서 권한을 허용해주세요
+              {:else}
+                앱 알림을 받습니다
+              {/if}
+            </span>
           </div>
           <button
             class="toggle"
-            class:active={$pushSettings.enabled}
+            class:active={$pushSettings.enabled && permissionStatus !== 'denied'}
             on:click={() => handlePushToggle(!$pushSettings.enabled)}
-            disabled={pushLoading}
+            disabled={pushLoading || permissionStatus === 'denied'}
           >
             <span class="toggle-knob"></span>
           </button>
         </div>
 
-        {#if $pushSettings.enabled}
+        {#if $pushSettings.enabled && permissionStatus !== 'denied'}
           <div class="row">
             <div class="row-content">
               <span class="row-label">속보 알림</span>
@@ -787,6 +822,40 @@
     background: var(--card);
     border-radius: var(--radius-lg);
     overflow: hidden;
+  }
+
+  /* 권한 거부 배너 */
+  .permission-denied-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: color-mix(in srgb, var(--system-orange) 15%, transparent);
+    border-bottom: 0.5px solid var(--separator);
+  }
+
+  .banner-icon {
+    flex-shrink: 0;
+    color: var(--system-orange);
+    margin-top: 2px;
+  }
+
+  .banner-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .banner-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .banner-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   /* 행 */

@@ -5,6 +5,7 @@
   import { get } from "svelte/store";
   import { auth, isLoggedIn, currentUser } from "$lib/stores/auth";
   import { settings, currentStartPage } from "$lib/stores/settings";
+  import { pushNotification } from "$lib/stores/pushNotification";
   import ShiftLogo from "$lib/components/ShiftLogo.svelte";
   import TermsAgreementModal from "$lib/components/TermsAgreementModal.svelte";
 
@@ -24,9 +25,9 @@
     trending: '/trending'
   };
 
-  // 이미 로그인된 경우 시작 페이지로 리다이렉트 (로그인 처리 중이 아닐 때만)
+  // 이미 로그인된 경우 시작 페이지로 리다이렉트
   onMount(() => {
-    auth.init();
+    // auth.init()은 +layout.svelte에서 이미 호출됨
     // 이미 로그인된 상태로 페이지 진입 시에만 리다이렉트
     if ($isLoggedIn) {
       navigateToStartPage();
@@ -36,6 +37,10 @@
   async function navigateToStartPage() {
     // 서버에서 설정을 불러온 후 시작 페이지로 이동
     await settings.init();
+
+    // 푸시 알림 초기화 (로그인 직후 실행)
+    await pushNotification.init();
+
     const startPage = get(currentStartPage);
     const targetPath = startPagePaths[startPage] || '/';
     goto(`${base}${targetPath}`);
@@ -54,24 +59,31 @@
     }
 
     loading = true;
-    const result = await auth.login(username, password, rememberMe);
-    loading = false;
-
-    if (result.success) {
-      // 약관 동의가 필요한 경우 모달 표시
-      if (result.requiresTermsAgreement) {
-        const user = get(currentUser);
-        if (user) {
-          pendingUserId = user.userId;
-          showTermsModal = true;
-          // 모달이 표시된 상태이므로 여기서 리턴 (navigateToStartPage 호출 안 함)
-          return;
+    console.log('[Login] Starting login request...');
+    try {
+      const result = await auth.login(username, password, rememberMe);
+      console.log('[Login] Login result:', result);
+      if (result.success) {
+        // 약관 동의가 필요한 경우 모달 표시
+        if (result.requiresTermsAgreement) {
+          const user = get(currentUser);
+          if (user) {
+            pendingUserId = user.userId;
+            showTermsModal = true;
+            // 모달이 표시된 상태이므로 여기서 리턴 (navigateToStartPage 호출 안 함)
+            return;
+          }
         }
+        // 약관 동의 필요 없으면 바로 이동
+        await navigateToStartPage();
+      } else {
+        error = result.message;
       }
-      // 약관 동의 필요 없으면 바로 이동
-      await navigateToStartPage();
-    } else {
-      error = result.message;
+    } catch (e) {
+      console.error('[Login] Login error:', e);
+      error = "로그인 중 오류가 발생했습니다.";
+    } finally {
+      loading = false;
     }
   }
 

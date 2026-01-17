@@ -1,16 +1,14 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { goto } from "$app/navigation";
-  import { onMount, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
   import { signUp, checkUsername, sendEmailVerification, verifyEmail } from "$lib/api";
   import { auth, isLoggedIn } from "$lib/stores/auth";
   import type { Gender, AgeGroup } from "$lib/types";
   import ShiftLogo from "$lib/components/ShiftLogo.svelte";
 
   // 이미 로그인된 경우 메인으로 리다이렉트
-  onMount(() => {
-    auth.init();
-  });
+  // auth.init()은 +layout.svelte에서 이미 호출됨
 
   onDestroy(() => {
     if (timerInterval) clearInterval(timerInterval);
@@ -56,6 +54,7 @@
   // 약관 동의
   let agreeTerms = false;
   let agreePrivacy = false;
+  let agreePushNotification = false;  // 푸시 알림 수신 동의 (선택)
 
   // 타이머 관련
   let timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -227,8 +226,19 @@
 
     loading = true;
     try {
-      const res = await signUp({ username, password, email, gender, ageGroup });
+      const res = await signUp({
+        username,
+        password,
+        email,
+        gender,
+        ageGroup,
+        pushNotificationConsent: agreePushNotification
+      });
       if (res.success) {
+        // 푸시 알림 동의 상태를 로컬에 저장 (로그인 후 권한 요청에 사용)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('push_consent_on_signup', agreePushNotification ? 'true' : 'false');
+        }
         goto(`${base}/login?signup=success`);
       } else {
         error = res.message ?? "가입 실패";
@@ -439,6 +449,15 @@
         <span class="checkbox-custom"></span>
         <span class="agreement-text">
           <a href="{base}/privacy" target="_blank" rel="noopener">개인정보처리방침</a>에 동의합니다 (필수)
+        </span>
+      </label>
+      <div class="agreement-divider"></div>
+      <label class="agreement">
+        <input type="checkbox" bind:checked={agreePushNotification} />
+        <span class="checkbox-custom"></span>
+        <span class="agreement-text">
+          푸시 알림 수신에 동의합니다 (선택)
+          <span class="agreement-desc">속보, 북마크 업데이트, 트렌드 알림 등</span>
         </span>
       </label>
     </div>
@@ -717,6 +736,19 @@
     color: var(--accent);
     text-decoration: underline;
     font-weight: 500;
+  }
+
+  .agreement-text .agreement-desc {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  .agreement-divider {
+    height: 1px;
+    background: var(--separator);
+    margin: var(--space-2) 0;
   }
 
   /* 타이머 */

@@ -97,6 +97,7 @@ export interface SignUpRequest {
   email: string;
   gender: Gender;
   ageGroup: AgeGroup;
+  pushNotificationConsent?: boolean;  // 푸시 알림 수신 동의 (선택)
 }
 
 // ========== Email Verification Types ==========

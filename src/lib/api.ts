@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import type {
   CardDetail,
   CardListItem,
@@ -33,7 +34,6 @@ import type {
   MyProfileResponse,
   DeleteAccountResponse
 } from "./types";
-import { Capacitor } from "@capacitor/core";
 
 // ========== Error Types ==========
 
@@ -94,7 +94,12 @@ function classifyError(error: unknown, status?: number): ApiError {
 }
 
 // 온라인 상태 확인
+// 참고: Capacitor 앱에서 navigator.onLine이 부정확할 수 있음
 export function isOnline(): boolean {
+  // Capacitor 네이티브 앱에서는 항상 true 반환 (실제 연결은 fetch에서 확인)
+  if (Capacitor.isNativePlatform()) {
+    return true;
+  }
   return typeof navigator !== 'undefined' ? navigator.onLine : true;
 }
 
@@ -751,12 +756,13 @@ export function updatePushSettings(settings: PushSettingsData) {
   }, true);
 }
 
-// 플랫폼 감지
+// 플랫폼 감지 (Capacitor 사용)
 function detectPlatform(): 'android' | 'ios' | 'web' {
   if (typeof window === 'undefined') return 'web';
 
-  const userAgent = navigator.userAgent.toLowerCase();
-  if (/android/.test(userAgent)) return 'android';
-  if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
+  // Capacitor의 플랫폼 정보 사용 (더 정확함)
+  const platform = Capacitor.getPlatform();
+  if (platform === 'android') return 'android';
+  if (platform === 'ios') return 'ios';
   return 'web';
 }

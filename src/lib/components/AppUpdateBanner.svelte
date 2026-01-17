@@ -15,6 +15,58 @@
   let availableVersion = '';
   let listenerHandle: { remove: () => void } | null = null;
 
+  // 리스너 설정 함수 - 업데이트 시작 전에 호출해야 함
+  async function setupListener() {
+    if (listenerHandle) return; // 이미 등록됨
+
+    console.log('[AppUpdateBanner] Setting up update listener...');
+    listenerHandle = await addUpdateListener((event) => {
+      console.log('[AppUpdateBanner] Update state change:', event);
+
+      switch (event.status) {
+        case FlexibleUpdateInstallStatus.PENDING:
+          console.log('[AppUpdateBanner] Update pending');
+          state = 'downloading';
+          downloadProgress = 0;
+          break;
+        case FlexibleUpdateInstallStatus.DOWNLOADING:
+          state = 'downloading';
+          if (event.bytesDownloaded !== undefined && event.totalBytesToDownload !== undefined && event.totalBytesToDownload > 0) {
+            downloadProgress = Math.round((event.bytesDownloaded / event.totalBytesToDownload) * 100);
+            console.log('[AppUpdateBanner] Download progress:', downloadProgress + '%',
+              `(${event.bytesDownloaded}/${event.totalBytesToDownload})`);
+          }
+          break;
+        case FlexibleUpdateInstallStatus.DOWNLOADED:
+          state = 'downloaded';
+          downloadProgress = 100;
+          console.log('[AppUpdateBanner] Download complete');
+          break;
+        case FlexibleUpdateInstallStatus.INSTALLING:
+          state = 'installing';
+          console.log('[AppUpdateBanner] Installing...');
+          break;
+        case FlexibleUpdateInstallStatus.INSTALLED:
+          console.log('[AppUpdateBanner] Installed successfully');
+          state = 'idle';
+          break;
+        case FlexibleUpdateInstallStatus.FAILED:
+          console.error('[AppUpdateBanner] Update failed');
+          state = 'available';
+          downloadProgress = 0;
+          break;
+        case FlexibleUpdateInstallStatus.CANCELED:
+          console.log('[AppUpdateBanner] Update canceled');
+          state = 'available';
+          downloadProgress = 0;
+          break;
+        default:
+          console.log('[AppUpdateBanner] Unknown status:', event.status);
+      }
+    });
+    console.log('[AppUpdateBanner] Listener registered');
+  }
+
   onMount(async () => {
     // 업데이트 확인
     console.log('[AppUpdateBanner] Checking for updates...');
@@ -25,54 +77,28 @@
       state = 'available';
       availableVersion = info.availableVersion || '';
       console.log('[AppUpdateBanner] Update available, showing banner');
-
-      // 업데이트 상태 리스너 등록
-      listenerHandle = await addUpdateListener((event) => {
-        console.log('[AppUpdateBanner] Update state change:', event);
-        switch (event.status) {
-          case FlexibleUpdateInstallStatus.DOWNLOADING:
-            state = 'downloading';
-            if (event.bytesDownloaded && event.totalBytesToDownload) {
-              downloadProgress = Math.round((event.bytesDownloaded / event.totalBytesToDownload) * 100);
-              console.log('[AppUpdateBanner] Download progress:', downloadProgress + '%');
-            }
-            break;
-          case FlexibleUpdateInstallStatus.DOWNLOADED:
-            state = 'downloaded';
-            downloadProgress = 100;
-            console.log('[AppUpdateBanner] Download complete');
-            break;
-          case FlexibleUpdateInstallStatus.INSTALLING:
-            state = 'installing';
-            break;
-          case FlexibleUpdateInstallStatus.INSTALLED:
-            state = 'idle';
-            break;
-          case FlexibleUpdateInstallStatus.FAILED:
-            console.error('[AppUpdateBanner] Update failed');
-            state = 'available';
-            break;
-          case FlexibleUpdateInstallStatus.CANCELED:
-            console.log('[AppUpdateBanner] Update canceled');
-            state = 'available';
-            break;
-        }
-      });
     }
   });
 
   onDestroy(() => {
     if (listenerHandle) {
       listenerHandle.remove();
+      listenerHandle = null;
     }
   });
 
   async function handleUpdate() {
     if (state === 'available') {
+      // 리스너를 먼저 등록 (이벤트 놓치지 않도록)
+      await setupListener();
+
       console.log('[AppUpdateBanner] Starting flexible update...');
       state = 'downloading';
+      downloadProgress = 0;
+
       const result = await startFlexibleUpdate();
       console.log('[AppUpdateBanner] startFlexibleUpdate result:', result);
+
       if (!result) {
         console.error('[AppUpdateBanner] Failed to start update');
         state = 'available';

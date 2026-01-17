@@ -26,8 +26,14 @@
   };
 
   onMount(async () => {
+    // 401 에러 시 로그인 페이지로 이동 - 먼저 등록!
+    const handleAuthExpired = () => {
+      auth.clear();
+      goto(`${base}/login`);
+    };
+    window.addEventListener("auth:expired", handleAuthExpired);
+
     auth.init();
-    await settings.init();
     mounted = true;
 
     // 저장된 인증 정보가 있으면 토큰 갱신 시도 (자동 로그인)
@@ -41,8 +47,11 @@
         // 토큰 갱신 실패 시 로그인 페이지로 이동
         auth.clear();
         goto(`${base}/login`);
-        return;
+        return () => window.removeEventListener("auth:expired", handleAuthExpired);
       }
+
+      // 설정 초기화 (토큰 갱신 성공 후)
+      await settings.init();
 
       // 로그인 상태이고 홈('/')에서 시작했을 때만 시작 페이지로 리다이렉트
       if (currentPath === '/' && !initialRedirectDone) {
@@ -54,16 +63,13 @@
         }
       }
 
-      // 푸시 알림 초기화 (로그인 상태에서만)
+      // 푸시 알림 초기화 (로그인 상태에서만) - await 추가
       await pushNotification.init();
+    } else {
+      // 비로그인 상태에서도 로컬 설정은 적용
+      await settings.init();
     }
 
-    // 401 에러 시 로그인 페이지로 이동
-    const handleAuthExpired = () => {
-      auth.clear();
-      goto(`${base}/login`);
-    };
-    window.addEventListener("auth:expired", handleAuthExpired);
     return () => window.removeEventListener("auth:expired", handleAuthExpired);
   });
 
